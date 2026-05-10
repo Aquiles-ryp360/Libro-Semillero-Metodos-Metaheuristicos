@@ -28,3 +28,6 @@ La plantilla deja espacios para:
 - autores y afiliaciones
 
 Estos campos deben completarse cuando la editorial los confirme.
+
+
+esta es una pruena de conflictod de version para ver el comportamiento de git
