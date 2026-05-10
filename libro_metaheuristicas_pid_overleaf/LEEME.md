@@ -29,6 +29,8 @@ La plantilla deja espacios para:
 
 Estos campos deben completarse cuando la editorial los confirme.
 
+=====================================================================================================================
+
 <<<<<<< Updated upstream
 
 esta es una pruena de conflictod de version para ver el comportamiento de git
