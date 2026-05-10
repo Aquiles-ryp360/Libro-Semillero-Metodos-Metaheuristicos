@@ -24,6 +24,7 @@
 # Generated documents
 *.pdf
 !pso final borrador.pdf
+!modelo-1.pdf
 
 # LaTeX temporary folders
 _minted-*/
