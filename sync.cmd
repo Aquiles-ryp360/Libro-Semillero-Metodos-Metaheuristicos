@@ -120,6 +120,8 @@ SELF_PATH="$0"
 SELF_NAME="$(basename -- "$0")"
 CONFIG_DIR="${HOME:-.}/.libro_sync"
 WORKSPACE_FILE="$CONFIG_DIR/workspace_path"
+SELF_SIGNATURE=""
+RESTART_CODE=88
 
 msg() { printf "%b\n" "$*" >&2; }
 info() { msg "${BLUE}==>${RESET} $*"; }
@@ -152,6 +154,38 @@ refresh_self_path() {
     cd - >/dev/null 2>&1 || true
   fi
   SELF_NAME="$base"
+}
+
+self_signature() {
+  if [ -f "$SELF_PATH" ]; then
+    git hash-object "$SELF_PATH" 2>/dev/null || cksum "$SELF_PATH" 2>/dev/null || printf "unknown"
+  else
+    printf "missing"
+  fi
+}
+
+capture_self_signature() {
+  SELF_SIGNATURE="$(self_signature)"
+}
+
+request_restart() {
+  exit "$RESTART_CODE"
+}
+
+restart_if_self_updated() {
+  local current_signature
+
+  current_signature="$(self_signature)"
+  if [ -n "$SELF_SIGNATURE" ] && [ "$current_signature" != "$SELF_SIGNATURE" ]; then
+    warn "El asistente sync.cmd se actualizo desde GitHub."
+    warn "Voy a reiniciar el asistente para usar la nueva version."
+    request_restart
+  fi
+}
+
+restart_with_current_script() {
+  info "Reiniciando el asistente con la version actualizada..."
+  exec env LIBRO_SYNC_GUARD=1 "$BASH" "$SELF_PATH" "$@"
 }
 
 prompt_yes_no() {
@@ -209,6 +243,29 @@ pause_enter() {
   IFS= read -r answer || true
 }
 
+run_safe_action() {
+  local label="$1"
+  local status
+  shift
+
+  ( "$@" )
+  status=$?
+
+  if [ "$status" -eq "$RESTART_CODE" ]; then
+    return "$RESTART_CODE"
+  fi
+
+  if [ "$status" -ne 0 ]; then
+    msg ""
+    err "No se pudo completar: $label"
+    warn "No se cerro el asistente. Volveras al menu para revisar o reintentar."
+    warn "Codigo de salida: $status"
+    pause_enter
+  fi
+
+  return "$status"
+}
+
 normalize_user_path() {
   local path="$1"
 
@@ -229,6 +286,17 @@ save_workspace_path() {
 load_workspace_path() {
   if [ -f "$WORKSPACE_FILE" ]; then
     sed -n '1p' "$WORKSPACE_FILE"
+  fi
+}
+
+delegate_to_repo_sync_if_available() {
+  local repo_sync
+
+  repo_sync="$(pwd -P)/$SELF_NAME"
+  if [ -f "$repo_sync" ] && [ "$repo_sync" != "$SELF_PATH" ]; then
+    info "El proyecto trae su propia version de $SELF_NAME."
+    info "Cambiando a esa version para evitar usar un asistente viejo."
+    exec env LIBRO_SYNC_GUARD=1 "$BASH" "$repo_sync"
   fi
 }
 
@@ -265,6 +333,7 @@ open_saved_workspace_if_available() {
     info "Usando carpeta de trabajo guardada:"
     msg "  $saved"
     cd "$saved" || return 1
+    delegate_to_repo_sync_if_available
     repo_bootstrap
     repo_menu
   fi
@@ -291,6 +360,26 @@ open_url() {
   elif command_exists open; then
     open "$url" >/dev/null 2>&1 || true
   fi
+}
+
+find_gh_bin() {
+  if command_exists gh; then
+    printf "%s" "gh"
+    return 0
+  fi
+
+  if is_windows; then
+    if [ -x "/c/Program Files/GitHub CLI/gh.exe" ]; then
+      printf "%s" "/c/Program Files/GitHub CLI/gh.exe"
+      return 0
+    fi
+    if [ -x "/c/Program Files (x86)/GitHub CLI/gh.exe" ]; then
+      printf "%s" "/c/Program Files (x86)/GitHub CLI/gh.exe"
+      return 0
+    fi
+  fi
+
+  return 1
 }
 
 install_git_linux() {
@@ -395,6 +484,19 @@ repo_url_to_dir() {
   printf "%s" "$name"
 }
 
+detect_remote_default_branch() {
+  local url="$1"
+  local fallback="$2"
+  local detected
+
+  detected="$(git ls-remote --symref "$url" HEAD 2>/dev/null | awk '/^ref:/ { sub("refs/heads/", "", $2); print $2; exit }')"
+  if [ -n "$detected" ]; then
+    printf "%s" "$detected"
+  else
+    printf "%s" "$fallback"
+  fi
+}
+
 ensure_gitignore() {
   if [ -f ".gitignore" ]; then
     ok ".gitignore ya existe."
@@ -428,6 +530,7 @@ ensure_gitignore() {
 
 # Generated documents
 *.pdf
+!pso final borrador.pdf
 
 # LaTeX temporary folders
 _minted-*/
@@ -504,14 +607,23 @@ configure_user() {
 install_gh_hint() {
   if is_windows; then
     warn "GitHub CLI no esta instalado. En Windows puedes usar: winget install --id GitHub.cli"
-    if command_exists winget.exe && prompt_yes_no "Intentar instalar GitHub CLI con winget?" "n"; then
+    if command_exists winget.exe && prompt_yes_no "Instalar GitHub CLI con winget ahora?" "s"; then
       winget.exe install --id GitHub.cli -e --source winget
       hash -r 2>/dev/null || true
     fi
   elif command_exists pacman; then
     warn "GitHub CLI no esta instalado. En Arch puedes usar: sudo pacman -S github-cli"
-    if prompt_yes_no "Intentar instalar GitHub CLI con pacman?" "n"; then
+    if prompt_yes_no "Instalar GitHub CLI con pacman ahora?" "s"; then
       sudo pacman -S --needed github-cli
+      hash -r 2>/dev/null || true
+    fi
+  elif command_exists apt-get; then
+    warn "GitHub CLI no esta instalado. Guia oficial: https://cli.github.com/"
+    warn "En Debian/Ubuntu puede requerir agregar el repositorio oficial de GitHub CLI."
+  elif command_exists dnf; then
+    warn "GitHub CLI no esta instalado. En Fedora puedes usar: sudo dnf install gh"
+    if prompt_yes_no "Instalar GitHub CLI con dnf ahora?" "s"; then
+      sudo dnf install -y gh
       hash -r 2>/dev/null || true
     fi
   else
@@ -519,21 +631,57 @@ install_gh_hint() {
   fi
 }
 
-create_remote_with_gh() {
-  local default_owner owner default_repo repo visibility visibility_flag full_repo
+ensure_github_login() {
+  local gh_bin
 
-  if ! command_exists gh; then
+  gh_bin="$(find_gh_bin 2>/dev/null || true)"
+  if [ -z "$gh_bin" ]; then
     install_gh_hint
+    gh_bin="$(find_gh_bin 2>/dev/null || true)"
   fi
-  command_exists gh || return 1
 
-  if ! gh auth status >/dev/null 2>&1; then
+  if [ -z "$gh_bin" ]; then
+    warn "No pude encontrar GitHub CLI. Git pedira credenciales cuando clone, haga pull o push."
+    warn "Si el repo es privado, instala GitHub CLI: https://cli.github.com/"
+    return 1
+  fi
+
+  info "Verificando login de GitHub."
+  if "$gh_bin" auth status -h github.com >/dev/null 2>&1; then
+    ok "Sesion de GitHub activa."
+    "$gh_bin" auth setup-git >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  warn "Primero iniciaremos sesion en GitHub para evitar problemas al clonar o subir cambios."
+  warn "Se abrira el navegador o se mostrara un codigo de login."
+  if "$gh_bin" auth login -h github.com -p https -w; then
+    "$gh_bin" auth setup-git >/dev/null 2>&1 || true
+    ok "Login de GitHub completado."
+    return 0
+  fi
+
+  warn "No se completo el login de GitHub. Puedes continuar, pero Git podria pedir credenciales despues."
+  return 1
+}
+
+create_remote_with_gh() {
+  local gh_bin default_owner owner default_repo repo visibility visibility_flag full_repo
+
+  gh_bin="$(find_gh_bin 2>/dev/null || true)"
+  if [ -z "$gh_bin" ]; then
+    install_gh_hint
+    gh_bin="$(find_gh_bin 2>/dev/null || true)"
+  fi
+  [ -n "$gh_bin" ] || return 1
+
+  if ! "$gh_bin" auth status >/dev/null 2>&1; then
     warn "Debes iniciar sesion en GitHub CLI."
     prompt_yes_no "Ejecutar 'gh auth login' ahora?" "s" || return 1
-    gh auth login || return 1
+    "$gh_bin" auth login || return 1
   fi
 
-  default_owner="$(gh api user --jq .login 2>/dev/null || true)"
+  default_owner="$("$gh_bin" api user --jq .login 2>/dev/null || true)"
   default_repo="$(basename "$PWD" | tr ' ' '-' | tr -cd '[:alnum:]_.-')"
   [ -n "$default_repo" ] || default_repo="libro-latex"
 
@@ -561,7 +709,7 @@ create_remote_with_gh() {
   fi
 
   info "Creando repositorio en GitHub: $full_repo"
-  gh repo create "$full_repo" "$visibility_flag" --source=. --remote=origin || return 1
+  "$gh_bin" repo create "$full_repo" "$visibility_flag" --source=. --remote=origin || return 1
   ok "Remoto origin configurado con GitHub."
   return 0
 }
@@ -712,6 +860,7 @@ pull_latest() {
   if [ "$pull_status" -eq 0 ]; then
     rm -f "$pull_log"
     ok "Pull completado. Tienes la version mas reciente disponible."
+    restart_if_self_updated
     return
   fi
 
@@ -812,6 +961,12 @@ copy_self_into_repo() {
   refresh_self_path
   target="$PWD/$SELF_NAME"
 
+  if [ -f "$target" ] && [ "$SELF_PATH" != "$target" ]; then
+    info "El repo ya contiene $SELF_NAME. No lo sobrescribire con una copia externa."
+    save_workspace_path "$(pwd -P)" || true
+    request_restart
+  fi
+
   if [ -f "$SELF_PATH" ] && [ "$SELF_PATH" != "$target" ]; then
     cp "$SELF_PATH" "$target" 2>/dev/null || {
       warn "No pude copiar este asistente dentro del repo. Puedes seguir usando el archivo original."
@@ -822,8 +977,185 @@ copy_self_into_repo() {
   fi
 }
 
+directory_has_entries() {
+  local dir="$1"
+  [ -n "$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]
+}
+
+directory_has_user_files() {
+  local dir="$1"
+  [ -n "$(find "$dir" -mindepth 1 -maxdepth 1 ! -name "$SELF_NAME" -print -quit 2>/dev/null)" ]
+}
+
+make_backup_path() {
+  local path="$1"
+  local stamp base parent
+  stamp="$(date +%Y%m%d_%H%M%S)"
+  base="$(basename -- "$path")"
+  parent="$(dirname -- "$path")"
+  printf "%s/%s_BACKUP_EMERGENCIA_%s" "$parent" "$base" "$stamp"
+}
+
+backup_existing_path() {
+  local path="$1"
+  local backup
+
+  [ -e "$path" ] || return 0
+  backup="$(make_backup_path "$path")"
+  info "Creando backup de emergencia:"
+  msg "  $backup"
+  mv "$path" "$backup" || die "No pude crear el backup de emergencia."
+  ok "Backup creado. Si elegiste reemplazar por error, tu avance esta ahi."
+}
+
+clone_repo_into() {
+  local url="$1"
+  local branch="$2"
+  local dest="$3"
+  local dest_parent dest_name
+
+  dest_parent="$(dirname -- "$dest")"
+  dest_name="$(basename -- "$dest")"
+  mkdir -p "$dest_parent" || die "No pude crear la carpeta base: $dest_parent"
+
+  info "Clonando la ultima version del repo."
+  if (cd "$dest_parent" && git clone --branch "$branch" "$url" "$dest_name"); then
+    return
+  fi
+
+  warn "No pude clonar la rama '$branch'. Intentare clonar la rama por defecto del repo."
+  (cd "$dest_parent" && git clone "$url" "$dest_name") || die "No pude clonar el repositorio. Revisa link, conexion y permisos."
+}
+
+commit_local_snapshot() {
+  local section description commit_msg
+
+  if ! status_has_changes; then
+    ok "No hay cambios locales para respaldar en commit."
+    return
+  fi
+
+  msg ""
+  warn "Se detectaron archivos locales antes de bajar el repo."
+  git status -s
+  msg ""
+  section="$(prompt_default "Que seccion/capitulo contiene tu avance local" "Borrador local")"
+  description="$(prompt_default "Describe brevemente ese avance local" "Respaldo antes de sincronizar con GitHub")"
+  commit_msg="Aporte [${section}]: ${description}"
+
+  git add . || die "No pude preparar tus archivos locales."
+  git diff --cached --quiet && return
+  git commit -m "$commit_msg" || die "No pude crear el commit de respaldo local."
+  ok "Avance local guardado en un commit."
+}
+
+pull_latest_allow_unrelated() {
+  local pull_log pull_status
+  BRANCH="$(current_branch)"
+
+  info "Bajando y combinando la version de GitHub con tu avance local."
+  pull_log="${TMPDIR:-/tmp}/libro_sync_pull_combine_$$.log"
+  rm -f "$pull_log"
+
+  GIT_MERGE_AUTOEDIT=no git -c pull.rebase=false pull --no-edit --allow-unrelated-histories origin "$BRANCH" 2>&1 | tee "$pull_log"
+  pull_status=${PIPESTATUS[0]}
+
+  if [ "$pull_status" -eq 0 ]; then
+    rm -f "$pull_log"
+    ok "Combinacion completada."
+    restart_if_self_updated
+    return
+  fi
+
+  if has_unmerged_conflicts; then
+    rm -f "$pull_log"
+    show_conflicts_and_exit
+  fi
+
+  rm -f "$pull_log"
+  die "No pude combinar con GitHub. Revisa conexion, permisos o el nombre de rama."
+}
+
+combine_existing_folder_with_repo() {
+  local url="$1"
+  local branch="$2"
+  local dest="$3"
+
+  cd "$dest" || die "No pude entrar a $dest"
+
+  if ! inside_git_repo; then
+    if git init -b "$branch" >/dev/null 2>&1; then
+      ok "Repositorio local inicializado en $branch."
+    else
+      git init || die "No pude inicializar Git aqui."
+      git checkout -b "$branch" || die "No pude crear la rama $branch."
+    fi
+  fi
+
+  configure_user
+  ensure_gitignore
+  ensure_gitattributes
+  git remote remove origin >/dev/null 2>&1 || true
+  git remote add origin "$url" || die "No pude configurar origin."
+  commit_local_snapshot
+  pull_latest_allow_unrelated
+
+  if prompt_yes_no "Subir ahora el commit/merge local a GitHub?" "s"; then
+    git push -u origin "$branch" || die "No pude subir la combinacion. Ejecuta de nuevo el asistente para reintentar."
+    ok "Avance local subido y proyecto sincronizado."
+  fi
+
+  repo_bootstrap
+}
+
+handle_existing_destination() {
+  local url="$1"
+  local branch="$2"
+  local dest="$3"
+  local choice
+
+  if [ -d "$dest/.git" ]; then
+    info "La carpeta ya es un repositorio Git:"
+    msg "  $dest"
+    cd "$dest" || die "No pude entrar al repo existente."
+    git remote remove origin >/dev/null 2>&1 || true
+    git remote add origin "$url" || die "No pude configurar origin."
+    repo_bootstrap
+    pull_latest
+    return
+  fi
+
+  warn "Ya existe contenido local en:"
+  msg "  $dest"
+  msg ""
+  msg "${BOLD}Que quieres hacer?${RESET}"
+  msg "  1) Reemplazar por la version de GitHub (crea backup de emergencia)"
+  msg "  2) Conservar/subir mi avance local y luego bajar GitHub"
+  msg "  0) Cancelar"
+  printf "%b " "${YELLOW}Elige una opcion [2]${RESET}" >&2
+  IFS= read -r choice || exit 1
+  choice="${choice:-2}"
+
+  case "$choice" in
+    1)
+      backup_existing_path "$dest"
+      clone_repo_into "$url" "$branch" "$dest"
+      cd "$dest" || die "No pude entrar al proyecto clonado."
+      ;;
+    2)
+      combine_existing_folder_with_repo "$url" "$branch" "$dest"
+      ;;
+    0)
+      die "Operacion cancelada para proteger tus archivos locales."
+      ;;
+    *)
+      die "Opcion no valida."
+      ;;
+  esac
+}
+
 clone_project() {
-  local url branch default_dir dest parent final_dest choice
+  local url branch repo_dir base final_dest
 
   ensure_git
 
@@ -837,44 +1169,40 @@ clone_project() {
     fi
   fi
 
-  branch="$(prompt_default "Rama principal para clonar" "$DEFAULT_BRANCH")"
+  branch="$(detect_remote_default_branch "$url" "$DEFAULT_BRANCH")"
+  ok "Rama principal detectada/usada: $branch"
   validate_branch_name "$branch" || die "Nombre de rama invalido: $branch"
 
-  default_dir="$DEFAULT_PROJECT_DIR"
-  [ -n "$default_dir" ] || default_dir="$(repo_url_to_dir "$url")"
-  dest="$(prompt_default "Nombre de la carpeta donde quedara el libro" "$default_dir")"
+  repo_dir="$DEFAULT_PROJECT_DIR"
+  [ -n "$repo_dir" ] || repo_dir="$(repo_url_to_dir "$url")"
 
-  parent="$(pwd -P)"
-  final_dest="$parent/$dest"
-
-  if [ -e "$final_dest" ]; then
-    if [ -d "$final_dest/.git" ]; then
-      warn "La carpeta ya existe y parece ser el repo."
-      if prompt_yes_no "Entrar a esa carpeta y abrir el menu del proyecto?" "s"; then
-        cd "$final_dest" || die "No pude entrar a $final_dest"
-        repo_bootstrap
-        repo_menu
-        return
-      fi
+  base="$(pwd -P)"
+  if [ -d "$base/.git" ]; then
+    final_dest="$base"
+  elif directory_has_user_files "$base"; then
+    warn "La carpeta base ya contiene archivos:"
+    msg "  $base"
+    if prompt_yes_no "Estos archivos son tu avance local del libro y quieres usar esta carpeta como proyecto?" "n"; then
+      final_dest="$base"
     else
-      warn "La carpeta ya existe pero no parece repo Git: $final_dest"
-      choice="$(prompt_required "Escribe otro nombre de carpeta:")"
-      dest="$choice"
-      final_dest="$parent/$dest"
+      final_dest="$base/$repo_dir"
     fi
+  elif directory_has_entries "$base"; then
+    final_dest="$base/$repo_dir"
+  else
+    final_dest="$base"
   fi
 
-  info "Clonando $url en $final_dest"
-  if ! git clone --branch "$branch" "$url" "$dest"; then
-    warn "No pude clonar la rama '$branch'. Intentare clonar la rama por defecto del repo."
-    git clone "$url" "$dest" || die "No pude clonar el repositorio. Revisa URL, conexion y permisos."
+  if [ -e "$final_dest" ] && directory_has_entries "$final_dest"; then
+    handle_existing_destination "$url" "$branch" "$final_dest"
+  else
+    clone_repo_into "$url" "$branch" "$final_dest"
+    cd "$final_dest" || die "No pude entrar al proyecto clonado."
   fi
 
-  cd "$final_dest" || die "No pude entrar al proyecto clonado."
   copy_self_into_repo
   repo_bootstrap
-  ok "Proyecto listo. Antes de editar usa la opcion 1 para descargar la ultima version."
-  repo_menu
+  ok "Proyecto listo con la ultima version disponible."
 }
 
 repo_bootstrap() {
@@ -907,7 +1235,7 @@ show_repo_status() {
 }
 
 repo_menu() {
-  local choice
+  local choice action_status
 
   while true; do
     move_to_repo_root_if_needed
@@ -930,29 +1258,41 @@ repo_menu() {
 
     case "$choice" in
       1)
-        pull_latest
-        pause_enter
+        run_safe_action "descargar ultima version" pull_latest
+        action_status=$?
+        [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq 0 ] && pause_enter
         ;;
       2)
-        commit_and_push
-        pause_enter
+        run_safe_action "subir mis cambios" commit_and_push
+        action_status=$?
+        [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq 0 ] && pause_enter
         ;;
       3)
-        show_repo_status
-        pause_enter
+        run_safe_action "ver estado" show_repo_status
+        action_status=$?
+        [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq 0 ] && pause_enter
         ;;
       4)
-        configure_user
-        pause_enter
+        run_safe_action "configurar nombre/email de Git" configure_user
+        action_status=$?
+        [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq 0 ] && pause_enter
         ;;
       5)
-        ensure_remote || true
-        pause_enter
+        run_safe_action "configurar remoto GitHub" ensure_remote
+        action_status=$?
+        [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq 0 ] && pause_enter
         ;;
       6)
         warn "Para este equipo recomiendo trabajar en una sola rama: $DEFAULT_BRANCH."
-        switch_or_create_branch
-        pause_enter
+        run_safe_action "cambiar o crear rama" switch_or_create_branch
+        action_status=$?
+        [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq 0 ] && pause_enter
         ;;
       0)
         ok "Listo."
@@ -966,47 +1306,28 @@ repo_menu() {
 }
 
 outside_repo_menu() {
-  local choice
-
   choose_working_folder
 
   while true; do
     msg ""
-    msg "${BOLD}Primer inicio: origen del proyecto${RESET}"
+    msg "${BOLD}Primer inicio: repositorio del libro${RESET}"
     msg "Carpeta de trabajo:"
     msg "  $(pwd -P)"
-    msg "------------------------------------"
-    msg "  1) Tengo el link del repositorio y quiero clonar el libro"
-    msg "  2) Voy a crear o preparar el repositorio aqui (admin/primera creacion)"
-    msg "  3) Configurar nombre/email de Git"
-    msg "  4) Verificar o instalar Git"
-    msg "  0) Salir"
-    printf "%b " "${YELLOW}Elige una opcion [1]${RESET}" >&2
-    IFS= read -r choice || exit 1
-    choice="${choice:-1}"
+    msg ""
 
-    case "$choice" in
-      1)
-        clone_project
-        ;;
-      2)
-        create_or_link_project_here
-        ;;
-      3)
-        ensure_git
-        configure_user
-        pause_enter
-        ;;
-      4)
-        ensure_git
-        pause_enter
-        ;;
+    run_safe_action "configurar y clonar el repositorio" clone_project
+    case "$?" in
       0)
-        ok "Listo."
-        exit 0
+        open_saved_workspace_if_available || {
+          warn "El proyecto se preparo, pero no pude abrir la carpeta guardada."
+          pause_enter
+        }
+        ;;
+      "$RESTART_CODE")
+        request_restart
         ;;
       *)
-        warn "Opcion no valida."
+        warn "Volvemos al paso del link del repositorio."
         ;;
     esac
   done
@@ -1018,7 +1339,9 @@ main() {
   fi
 
   refresh_self_path
+  capture_self_signature
   ensure_git
+  ensure_github_login || true
 
   if inside_git_repo; then
     repo_bootstrap
@@ -1029,5 +1352,39 @@ main() {
     outside_repo_menu
   fi
 }
+
+run_supervisor() {
+  local status
+
+  while true; do
+    env LIBRO_SYNC_GUARD=1 "$BASH" "$0" "$@"
+    status=$?
+
+    case "$status" in
+      0)
+        exit 0
+        ;;
+      "$RESTART_CODE")
+        info "Reiniciando con la version mas reciente del asistente..."
+        continue
+        ;;
+      *)
+        msg ""
+        err "El asistente encontro un error y se detuvo de forma segura."
+        warn "La terminal queda abierta para que puedas leer el mensaje anterior."
+        warn "Codigo de salida: $status"
+        pause_enter
+        if prompt_yes_no "Quieres volver a abrir el asistente?" "s"; then
+          continue
+        fi
+        exit "$status"
+        ;;
+    esac
+  done
+}
+
+if [ "${LIBRO_SYNC_GUARD:-}" != "1" ]; then
+  run_supervisor "$@"
+fi
 
 main "$@"
