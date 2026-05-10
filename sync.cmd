@@ -92,8 +92,8 @@ set -u
 IFS=$'\n\t'
 
 # Configuracion para dejar el archivo listo antes de compartirlo:
-# 1. Crea el repo en GitHub.
-# 2. Pega aqui la URL HTTPS o SSH del repo.
+# 1. Crea el proyecto en GitHub.
+# 2. Pega aqui la URL HTTPS o SSH del proyecto.
 # 3. Entrega este unico archivo a tus companeros.
 DEFAULT_REPO_URL=""
 DEFAULT_BRANCH="main"
@@ -339,9 +339,9 @@ open_saved_workspace_if_available() {
   fi
 
   if [ -d "$saved" ]; then
-    warn "La carpeta guardada existe, pero aun no es un repositorio Git:"
+    warn "La carpeta guardada existe, pero aun no es una carpeta de proyecto Git:"
     msg "  $saved"
-    if prompt_yes_no "Usar esa carpeta para clonar o preparar el proyecto?" "s"; then
+    if prompt_yes_no "Usar esa carpeta para descargar o preparar el proyecto?" "s"; then
       cd "$saved" || die "No pude entrar a la carpeta guardada."
       outside_repo_menu
     fi
@@ -514,6 +514,15 @@ github_slug_from_url() {
   esac
 }
 
+github_compare_url() {
+  local upstream_slug="$1"
+  local base_branch="$2"
+  local login="$3"
+  local head_branch="$4"
+
+  printf "https://github.com/%s/compare/%s...%s:%s?expand=1" "$upstream_slug" "$base_branch" "$login" "$head_branch"
+}
+
 ensure_gitignore() {
   if [ -f ".gitignore" ]; then
     ok ".gitignore ya existe."
@@ -548,6 +557,7 @@ ensure_gitignore() {
 # Generated documents
 *.pdf
 !pso final borrador.pdf
+!modelo-1.pdf
 
 # LaTeX temporary folders
 _minted-*/
@@ -597,8 +607,8 @@ configure_user() {
   email="$(git config user.email 2>/dev/null || true)"
 
   if [ -z "$name" ]; then
-    name="$(prompt_required "Tu nombre para los commits:")"
-    if prompt_yes_no "Guardar este nombre globalmente para todos tus repositorios?" "s"; then
+    name="$(prompt_required "Tu nombre para identificar tus guardados (commits):")"
+    if prompt_yes_no "Guardar este nombre para todos tus proyectos Git?" "s"; then
       scope="--global"
     else
       scope="--local"
@@ -609,8 +619,8 @@ configure_user() {
   fi
 
   if [ -z "$email" ]; then
-    email="$(prompt_required "Tu email para los commits:")"
-    if prompt_yes_no "Guardar este email globalmente para todos tus repositorios?" "s"; then
+    email="$(prompt_required "Tu email para identificar tus guardados (commits):")"
+    if prompt_yes_no "Guardar este email para todos tus proyectos Git?" "s"; then
       scope="--global"
     else
       scope="--local"
@@ -658,8 +668,8 @@ ensure_github_login() {
   fi
 
   if [ -z "$gh_bin" ]; then
-    warn "No pude encontrar GitHub CLI. Git pedira credenciales cuando clone, haga pull o push."
-    warn "Si el repo es privado, instala GitHub CLI: https://cli.github.com/"
+    warn "No pude encontrar GitHub CLI. Git podria pedir credenciales al descargar o enviar cambios."
+    warn "Si el proyecto es privado, instala GitHub CLI: https://cli.github.com/"
     return 1
   fi
 
@@ -702,8 +712,8 @@ create_remote_with_gh() {
   default_repo="$(basename "$PWD" | tr ' ' '-' | tr -cd '[:alnum:]_.-')"
   [ -n "$default_repo" ] || default_repo="libro-latex"
 
-  owner="$(prompt_default "Cuenta u organizacion de GitHub" "${default_owner:-mi-usuario}")"
-  repo="$(prompt_default "Nombre del repositorio" "$default_repo")"
+  owner="$(prompt_default "Cuenta u organizacion de GitHub donde estara el proyecto" "${default_owner:-mi-usuario}")"
+  repo="$(prompt_default "Nombre del proyecto en GitHub (repositorio)" "$default_repo")"
 
   msg "${BOLD}Visibilidad:${RESET}"
   msg "  1) privado (recomendado para borradores)"
@@ -727,13 +737,13 @@ create_remote_with_gh() {
 
   info "Creando repositorio en GitHub: $full_repo"
   "$gh_bin" repo create "$full_repo" "$visibility_flag" --source=. --remote=origin || return 1
-  ok "Remoto origin configurado con GitHub."
+  ok "Enlace del proyecto en GitHub configurado (remote origin)."
   return 0
 }
 
 add_or_replace_remote() {
   local remote_url existing
-  remote_url="$(prompt_required "Pega la URL del repositorio remoto (HTTPS o SSH):")"
+  remote_url="$(prompt_required "Pega el enlace del proyecto en GitHub (remote HTTPS o SSH):")"
   existing="$(git remote get-url origin 2>/dev/null || true)"
 
   if [ -n "$existing" ]; then
@@ -741,7 +751,7 @@ add_or_replace_remote() {
   else
     git remote add origin "$remote_url" || return 1
   fi
-  ok "Remoto origin configurado: $remote_url"
+  ok "Enlace del proyecto en GitHub configurado (origin): $remote_url"
 }
 
 ensure_remote() {
@@ -749,24 +759,24 @@ ensure_remote() {
 
   remote_url="$(git remote get-url origin 2>/dev/null || true)"
   if [ -n "$remote_url" ]; then
-    ok "Remoto origin: $remote_url"
+    ok "Enlace de GitHub configurado (origin): $remote_url"
     return
   fi
 
   if [ -n "$DEFAULT_REPO_URL" ]; then
-    warn "No existe remoto origin."
+    warn "No existe enlace con GitHub (remote origin)."
     if prompt_yes_no "Usar el repo configurado en este script?" "s"; then
       git remote add origin "$DEFAULT_REPO_URL" || die "No pude configurar origin."
-      ok "Remoto origin configurado: $DEFAULT_REPO_URL"
+      ok "Enlace de GitHub configurado (origin): $DEFAULT_REPO_URL"
       return
     fi
   fi
 
-  warn "No existe remoto 'origin'. Hace falta uno para hacer pull/push."
+  warn "No existe enlace con GitHub (remote origin). Hace falta para descargar/enviar cambios."
   while true; do
-    msg "${BOLD}Configurar remoto:${RESET}"
-    msg "  1) Crear repositorio en GitHub con GitHub CLI (gh)"
-    msg "  2) Enlazar un repositorio existente pegando su URL"
+    msg "${BOLD}Configurar enlace con GitHub (remote):${RESET}"
+    msg "  1) Crear proyecto en GitHub (repositorio) con GitHub CLI (gh)"
+    msg "  2) Enlazar un proyecto existente pegando su URL"
     msg "  0) Volver"
     printf "%b " "${YELLOW}Elige una opcion [1]${RESET}" >&2
     IFS= read -r choice || exit 1
@@ -795,43 +805,43 @@ ensure_remote() {
 
 ensure_repo_here() {
   if inside_git_repo; then
-    ok "Este directorio ya es un repositorio Git."
+    ok "Esta carpeta ya es un proyecto Git (repositorio local)."
     return
   fi
 
-  warn "Este directorio aun no es un repositorio Git."
-  prompt_yes_no "Inicializar Git aqui?" "s" || return 1
+  warn "Esta carpeta aun no esta preparada como proyecto Git."
+  prompt_yes_no "Preparar Git aqui (inicializar repositorio)?" "s" || return 1
 
   if git init -b "$DEFAULT_BRANCH" >/dev/null 2>&1; then
-    ok "Repositorio inicializado en la rama $DEFAULT_BRANCH."
+    ok "Proyecto preparado en la linea principal $DEFAULT_BRANCH (rama)."
   else
-    git init || die "No pude inicializar el repositorio."
-    git checkout -b "$DEFAULT_BRANCH" || die "No pude crear la rama $DEFAULT_BRANCH."
-    ok "Repositorio inicializado en la rama $DEFAULT_BRANCH."
+    git init || die "No pude preparar Git en esta carpeta."
+    git checkout -b "$DEFAULT_BRANCH" || die "No pude crear la linea de trabajo $DEFAULT_BRANCH (rama)."
+    ok "Proyecto preparado en la linea principal $DEFAULT_BRANCH (rama)."
   fi
 }
 
 switch_or_create_branch() {
   local target
-  target="$(prompt_default "Nombre de la rama" "$DEFAULT_BRANCH")"
-  validate_branch_name "$target" || die "Nombre de rama invalido: $target"
+  target="$(prompt_default "Nombre de la linea de trabajo (rama)" "$DEFAULT_BRANCH")"
+  validate_branch_name "$target" || die "Nombre de linea de trabajo invalido (rama): $target"
 
   if git show-ref --verify --quiet "refs/heads/$target"; then
-    git switch "$target" || die "No pude cambiar a $target."
+    git switch "$target" || die "No pude cambiar a la linea de trabajo $target (rama)."
   else
-    git switch -c "$target" || die "No pude crear la rama $target."
+    git switch -c "$target" || die "No pude crear la linea de trabajo $target (rama)."
   fi
-  ok "Rama actual: $(current_branch)"
+  ok "Linea de trabajo actual (rama): $(current_branch)"
 }
 
 normalize_main_branch() {
   local branch
   branch="$(current_branch)"
   if [ "$branch" = "master" ]; then
-    warn "La rama actual es 'master'. Para el equipo recomiendo usar '$DEFAULT_BRANCH'."
-    if prompt_yes_no "Renombrar 'master' a '$DEFAULT_BRANCH'?" "s"; then
+    warn "La linea de trabajo actual es 'master'. Para el equipo recomiendo usar '$DEFAULT_BRANCH'."
+    if prompt_yes_no "Renombrar 'master' a '$DEFAULT_BRANCH' (rama principal)?" "s"; then
       git branch -M "$DEFAULT_BRANCH" || die "No pude renombrar la rama."
-      ok "Rama renombrada a $DEFAULT_BRANCH."
+      ok "Linea principal renombrada a $DEFAULT_BRANCH (rama)."
     fi
   fi
 }
@@ -841,11 +851,11 @@ has_unmerged_conflicts() {
 }
 
 show_conflicts_and_exit() {
-  err "Hay conflictos de Git. El script se detiene para no pisar el trabajo de nadie."
-  msg "${YELLOW}Archivos en conflicto:${RESET}"
+  err "Hay choque de cambios (conflicto de Git). El script se detiene para no pisar el trabajo de nadie."
+  msg "${YELLOW}Archivos con choque de cambios (conflicto):${RESET}"
   git diff --name-only --diff-filter=U >&2 || true
   msg ""
-  msg "Resuelve los conflictos, revisa el documento, luego ejecuta de nuevo este script."
+  msg "Resuelve el choque de cambios, revisa el documento y luego ejecuta de nuevo este script."
   exit 1
 }
 
@@ -859,7 +869,7 @@ pull_latest() {
     show_conflicts_and_exit
   fi
 
-  info "Descargando cambios del equipo: git pull origin $BRANCH"
+  info "Descargando la ultima version del equipo (pull): git pull origin $BRANCH"
   pull_log="${TMPDIR:-/tmp}/libro_sync_pull_$$.log"
   rm -f "$pull_log"
 
@@ -867,7 +877,7 @@ pull_latest() {
   pull_status=${PIPESTATUS[0]}
 
   if [ "$pull_status" -ne 0 ] && grep -qiE "unknown option|unrecognized option|usage: git pull" "$pull_log" 2>/dev/null; then
-    warn "Tu Git no soporta --autostash en pull. Reintentando sin esa opcion."
+    warn "Tu Git no soporta guardado temporal automatico (--autostash). Reintentando sin esa opcion."
     rm -f "$pull_log"
     pull_log="${TMPDIR:-/tmp}/libro_sync_pull_retry_$$.log"
     GIT_MERGE_AUTOEDIT=no git -c pull.rebase=false pull --no-edit origin "$BRANCH" 2>&1 | tee "$pull_log"
@@ -876,7 +886,7 @@ pull_latest() {
 
   if [ "$pull_status" -eq 0 ]; then
     rm -f "$pull_log"
-    ok "Pull completado. Tienes la version mas reciente disponible."
+    ok "Descarga completada (pull). Tienes la version mas reciente disponible."
     restart_if_self_updated
     return
   fi
@@ -888,12 +898,12 @@ pull_latest() {
 
   if grep -qiE "couldn't find remote ref|no such ref|could not find remote ref|fatal: couldn't find remote ref" "$pull_log" 2>/dev/null; then
     rm -f "$pull_log"
-    warn "La rama origin/$BRANCH aun no existe. Se continuara como primer push de esa rama."
+    warn "La linea origin/$BRANCH aun no existe. Se continuara como primer envio (push) de esa rama."
     return
   fi
 
   rm -f "$pull_log"
-  die "Fallo el pull. Revisa conexion, permisos de GitHub o nombre de rama."
+  die "Fallo la descarga (pull). Revisa conexion, permisos de GitHub o nombre de rama."
 }
 
 status_has_changes() {
@@ -937,7 +947,7 @@ show_unpushed_commits() {
 
   remote_ref="$(remote_branch_ref origin "$branch")"
   msg ""
-  warn "Hay commits locales que aun no estan en GitHub."
+  warn "Hay guardados locales (commits) que aun no estan en GitHub."
   if remote_branch_exists_locally origin "$branch"; then
     git log --oneline "${remote_ref}..HEAD" >&2 || true
   else
@@ -981,31 +991,31 @@ ensure_fork_remote() {
     return
   fi
 
-  info "Creando o verificando tu fork en GitHub: ${login}/${repo_name}"
+  info "Creando o verificando tu copia personal (fork) en GitHub: ${login}/${repo_name}"
   "$gh_bin" api -X POST "repos/${upstream_slug}/forks" >/dev/null 2>&1 || true
 
   for _ in 1 2 3 4 5; do
     if "$gh_bin" repo view "${login}/${repo_name}" >/dev/null 2>&1; then
       git remote add fork "$fork_url" || git remote set-url fork "$fork_url" || die "No pude configurar el remoto fork."
-      ok "Fork configurado como remoto 'fork': $fork_url"
+      ok "Copia personal configurada (fork remoto): $fork_url"
       return
     fi
     sleep 2
   done
 
-  die "No pude confirmar que exista el fork ${login}/${repo_name}. Revisa GitHub y vuelve a intentar."
+  die "No pude confirmar que exista tu copia personal (fork) ${login}/${repo_name}. Revisa GitHub y vuelve a intentar."
 }
 
 create_pull_request_from_fork() {
   local branch="$1"
-  local gh_bin origin_url upstream_slug login repo_name pr_branch title body
+  local gh_bin origin_url upstream_slug login repo_name pr_branch title body pr_output pr_status pr_url compare_url
 
   gh_bin="$(find_gh_bin 2>/dev/null || true)"
-  [ -n "$gh_bin" ] || die "Para crear Pull Request se necesita GitHub CLI (gh)."
+  [ -n "$gh_bin" ] || die "Para solicitar revision (Pull Request) se necesita GitHub CLI (gh)."
   ensure_github_login || die "No se pudo iniciar sesion en GitHub CLI."
 
   origin_url="$(git remote get-url origin 2>/dev/null || true)"
-  upstream_slug="$(github_slug_from_url "$origin_url")" || die "No pude reconocer el repo de GitHub desde origin: $origin_url"
+  upstream_slug="$(github_slug_from_url "$origin_url")" || die "No pude reconocer el proyecto de GitHub desde origin: $origin_url"
   login="$("$gh_bin" api user --jq .login 2>/dev/null || true)"
   [ -n "$login" ] || die "No pude detectar tu usuario de GitHub."
   repo_name="${upstream_slug##*/}"
@@ -1013,8 +1023,8 @@ create_pull_request_from_fork() {
   ensure_fork_remote "$gh_bin" "$upstream_slug" "$login" "$repo_name"
 
   pr_branch="sync-${login}-$(date +%Y%m%d-%H%M%S)"
-  info "Subiendo tus commits a tu fork: fork/$pr_branch"
-  git push -u fork "HEAD:${pr_branch}" || die "No pude subir tus commits al fork."
+  info "Subiendo tus guardados (commits) a tu copia personal (fork): fork/$pr_branch"
+  git push -u fork "HEAD:${pr_branch}" || die "No pude subir tus guardados (commits) a tu copia personal (fork)."
 
   title="$(git log -1 --pretty=%s 2>/dev/null || printf "Aporte desde sync.cmd")"
   body="Pull request creado automaticamente por sync.cmd porque esta cuenta no tiene permiso directo para escribir en ${upstream_slug}.
@@ -1026,22 +1036,43 @@ Resumen:
 
 Revisar y aceptar este PR para incorporar los cambios al libro."
 
-  info "Creando Pull Request hacia ${upstream_slug}:${branch}"
-  "$gh_bin" pr create \
+  info "Creando solicitud de revision (Pull Request) hacia ${upstream_slug}:${branch}"
+  pr_output="$("$gh_bin" pr create \
     --repo "$upstream_slug" \
     --base "$branch" \
     --head "${login}:${pr_branch}" \
     --title "$title" \
-    --body "$body" || die "No pude crear el Pull Request. Revisa si ya existe uno abierto para estos commits."
+    --body "$body" 2>&1)"
+  pr_status=$?
 
-  ok "Pull Request creado. Un mantenedor del repo debe revisarlo y aceptarlo."
+  if [ "$pr_status" -eq 0 ]; then
+    ok "Solicitud de revision creada (Pull Request). Un mantenedor debe revisarla y aceptarla."
+    msg "$pr_output"
+    pr_url="$(printf "%s\n" "$pr_output" | awk '/^https?:\/\// { print; exit }')"
+    if [ -n "$pr_url" ]; then
+      info "Abriendo la solicitud de revision (Pull Request):"
+      msg "  $pr_url"
+      open_url "$pr_url"
+    fi
+    return
+  fi
+
+  warn "La linea de trabajo se subio a tu copia personal (fork), pero GitHub CLI no pudo crear la solicitud de revision (Pull Request) automaticamente."
+  warn "Detalle devuelto por GitHub CLI:"
+  msg "$pr_output"
+  compare_url="$(github_compare_url "$upstream_slug" "$branch" "$login" "$pr_branch")"
+  msg ""
+  warn "Abre este enlace para crear la solicitud de revision (Pull Request) manualmente:"
+  msg "  $compare_url"
+  open_url "$compare_url"
+  ok "Tus cambios ya estan en tu copia personal (fork). Falta confirmar la solicitud de revision (Pull Request) en el navegador."
 }
 
 push_current_branch() {
   local branch="$1"
   local push_log push_status
 
-  info "Enviando cambios: git push -u origin $branch"
+  info "Enviando cambios a GitHub (push): git push -u origin $branch"
   push_log="${TMPDIR:-/tmp}/libro_sync_push_$$.log"
   rm -f "$push_log"
 
@@ -1056,17 +1087,17 @@ push_current_branch() {
 
   if grep -qiE "Permission to .* denied|requested URL returned error: 403|Write access to repository not granted|permission denied|ERROR: Permission denied" "$push_log" 2>/dev/null; then
     rm -f "$push_log"
-    warn "Tu cuenta de GitHub no tiene permiso directo para escribir en este repositorio."
-    warn "Tus commits NO se perdieron: estan guardados localmente."
-    if prompt_yes_no "Quieres crear un Pull Request desde tu fork para pedir que acepten tus cambios?" "s"; then
+    warn "Tu cuenta de GitHub no tiene permiso directo para escribir en este proyecto."
+    warn "Tus guardados (commits) NO se perdieron: estan guardados localmente."
+    if prompt_yes_no "Quieres crear una solicitud de revision (Pull Request) desde tu copia personal (fork)?" "s"; then
       create_pull_request_from_fork "$branch"
       return
     fi
-    die "Push cancelado. Tus commits siguen locales; puedes pedir acceso o volver a intentar luego."
+    die "Envio cancelado (push). Tus guardados (commits) siguen locales; puedes pedir acceso o volver a intentar luego."
   fi
 
   rm -f "$push_log"
-  die "Fallo el push. Si alguien subio cambios antes que tu, vuelve a ejecutar el asistente para traer cambios y reintentar."
+  die "Fallo el envio (push). Si alguien subio cambios antes que tu, vuelve a ejecutar el asistente para traer cambios y reintentar."
 }
 
 commit_and_push() {
@@ -1083,14 +1114,14 @@ commit_and_push() {
     BRANCH="$(current_branch)"
     if has_unpushed_commits "$BRANCH"; then
       show_unpushed_commits "$BRANCH"
-      if prompt_yes_no "Quieres intentar subir esos commits pendientes ahora?" "s"; then
+      if prompt_yes_no "Quieres intentar enviar esos guardados pendientes (commits) ahora?" "s"; then
         push_current_branch "$BRANCH"
       else
-        warn "No se subio nada. Los commits siguen guardados localmente."
+        warn "No se envio nada. Los guardados (commits) siguen en tu computadora."
       fi
       return
     fi
-    ok "No hay archivos modificados ni commits pendientes por subir."
+    ok "No hay archivos modificados ni guardados pendientes por enviar (commits)."
     return
   fi
 
@@ -1101,29 +1132,29 @@ commit_and_push() {
   commit_msg="Aporte [${section}]: ${description}"
 
   msg ""
-  info "Mensaje de commit propuesto:"
+  info "Mensaje para el guardado (commit) propuesto:"
   msg "  $commit_msg"
   if ! prompt_yes_no "Confirmar este mensaje?" "s"; then
-    custom_msg="$(prompt_required "Escribe el mensaje de commit completo:")"
+    custom_msg="$(prompt_required "Escribe el mensaje completo para el guardado (commit):")"
     commit_msg="$custom_msg"
   fi
 
   add_files_interactively
 
   msg ""
-  info "Archivos preparados para commit:"
+  info "Archivos preparados para guardar (commit):"
   git diff --cached --name-status || true
   msg ""
 
   if git diff --cached --quiet; then
-    ok "No hay cambios versionables para commitear."
+    ok "No hay cambios listos para guardar (commit)."
     return
   fi
 
-  prompt_yes_no "Crear commit y subirlo ahora?" "s" || die "Operacion cancelada antes del commit."
+  prompt_yes_no "Crear guardado (commit) y enviarlo ahora?" "s" || die "Operacion cancelada antes del guardado (commit)."
 
-  info "Creando commit."
-  git commit -m "$commit_msg" || die "Fallo el commit. Revisa los mensajes anteriores."
+  info "Creando guardado local (commit)."
+  git commit -m "$commit_msg" || die "Fallo el guardado (commit). Revisa los mensajes anteriores."
 
   BRANCH="$(current_branch)"
   push_current_branch "$BRANCH"
@@ -1135,7 +1166,7 @@ copy_self_into_repo() {
   target="$PWD/$SELF_NAME"
 
   if [ -f "$target" ] && [ "$SELF_PATH" != "$target" ]; then
-    info "El repo ya contiene $SELF_NAME. No lo sobrescribire con una copia externa."
+    info "El proyecto ya contiene $SELF_NAME. No lo sobrescribire con una copia externa."
     save_workspace_path "$(pwd -P)" || true
     request_restart
   fi
@@ -1191,25 +1222,25 @@ clone_repo_into() {
   dest_name="$(basename -- "$dest")"
   mkdir -p "$dest_parent" || die "No pude crear la carpeta base: $dest_parent"
 
-  info "Clonando la ultima version del repo."
+  info "Descargando por primera vez la ultima version del proyecto (clone)."
   if (cd "$dest_parent" && git clone --branch "$branch" "$url" "$dest_name"); then
     return
   fi
 
-  warn "No pude clonar la rama '$branch'. Intentare clonar la rama por defecto del repo."
-  (cd "$dest_parent" && git clone "$url" "$dest_name") || die "No pude clonar el repositorio. Revisa link, conexion y permisos."
+    warn "No pude descargar la linea '$branch' (rama). Intentare descargar la rama por defecto del proyecto."
+  (cd "$dest_parent" && git clone "$url" "$dest_name") || die "No pude descargar el proyecto (clone). Revisa link, conexion y permisos."
 }
 
 commit_local_snapshot() {
   local section description commit_msg
 
   if ! status_has_changes; then
-    ok "No hay cambios locales para respaldar en commit."
+    ok "No hay cambios locales para respaldar en un guardado (commit)."
     return
   fi
 
   msg ""
-  warn "Se detectaron archivos locales antes de bajar el repo."
+  warn "Se detectaron archivos locales antes de descargar el proyecto."
   git status -s
   msg ""
   section="$(prompt_default "Que seccion/capitulo contiene tu avance local" "Borrador local")"
@@ -1218,7 +1249,7 @@ commit_local_snapshot() {
 
   git add . || die "No pude preparar tus archivos locales."
   git diff --cached --quiet && return
-  git commit -m "$commit_msg" || die "No pude crear el commit de respaldo local."
+  git commit -m "$commit_msg" || die "No pude crear el guardado de respaldo local (commit)."
   ok "Avance local guardado en un commit."
 }
 
@@ -1226,7 +1257,7 @@ pull_latest_allow_unrelated() {
   local pull_log pull_status
   BRANCH="$(current_branch)"
 
-  info "Bajando y combinando la version de GitHub con tu avance local."
+  info "Descargando y combinando la version de GitHub con tu avance local."
   pull_log="${TMPDIR:-/tmp}/libro_sync_pull_combine_$$.log"
   rm -f "$pull_log"
 
@@ -1246,7 +1277,7 @@ pull_latest_allow_unrelated() {
   fi
 
   rm -f "$pull_log"
-  die "No pude combinar con GitHub. Revisa conexion, permisos o el nombre de rama."
+  die "No pude combinar con GitHub. Revisa conexion, permisos o el nombre de la linea de trabajo (rama)."
 }
 
 combine_existing_folder_with_repo() {
@@ -1258,10 +1289,10 @@ combine_existing_folder_with_repo() {
 
   if ! inside_git_repo; then
     if git init -b "$branch" >/dev/null 2>&1; then
-      ok "Repositorio local inicializado en $branch."
+      ok "Proyecto local preparado en $branch (repositorio/rama)."
     else
-      git init || die "No pude inicializar Git aqui."
-      git checkout -b "$branch" || die "No pude crear la rama $branch."
+      git init || die "No pude preparar Git aqui."
+      git checkout -b "$branch" || die "No pude crear la linea de trabajo $branch (rama)."
     fi
   fi
 
@@ -1273,7 +1304,7 @@ combine_existing_folder_with_repo() {
   commit_local_snapshot
   pull_latest_allow_unrelated
 
-  if prompt_yes_no "Subir ahora el commit/merge local a GitHub?" "s"; then
+  if prompt_yes_no "Enviar ahora el guardado/combinacion local a GitHub (push/merge)?" "s"; then
     push_current_branch "$branch"
   fi
 
@@ -1287,9 +1318,9 @@ handle_existing_destination() {
   local choice
 
   if [ -d "$dest/.git" ]; then
-    info "La carpeta ya es un repositorio Git:"
+    info "La carpeta ya es un proyecto Git:"
     msg "  $dest"
-    cd "$dest" || die "No pude entrar al repo existente."
+    cd "$dest" || die "No pude entrar al proyecto existente."
     git remote remove origin >/dev/null 2>&1 || true
     git remote add origin "$url" || die "No pude configurar origin."
     repo_bootstrap
@@ -1302,7 +1333,7 @@ handle_existing_destination() {
   msg ""
   msg "${BOLD}Que quieres hacer?${RESET}"
   msg "  1) Reemplazar por la version de GitHub (crea backup de emergencia)"
-  msg "  2) Conservar/subir mi avance local y luego bajar GitHub"
+  msg "  2) Conservar/enviar mi avance local y luego descargar GitHub"
   msg "  0) Cancelar"
   printf "%b " "${YELLOW}Elige una opcion [2]${RESET}" >&2
   IFS= read -r choice || exit 1
@@ -1335,15 +1366,15 @@ clone_project() {
   if [ -z "$url" ]; then
     url="$(prompt_required "Pega el link del repositorio del libro (HTTPS o SSH):")"
   else
-    msg "Repo configurado: $url"
-    if ! prompt_yes_no "Usar este repositorio?" "s"; then
+    msg "Proyecto configurado: $url"
+    if ! prompt_yes_no "Usar este proyecto de GitHub?" "s"; then
       url="$(prompt_required "Pega el link del repositorio del libro (HTTPS o SSH):")"
     fi
   fi
 
   branch="$(detect_remote_default_branch "$url" "$DEFAULT_BRANCH")"
-  ok "Rama principal detectada/usada: $branch"
-  validate_branch_name "$branch" || die "Nombre de rama invalido: $branch"
+  ok "Linea principal detectada/usada (rama): $branch"
+  validate_branch_name "$branch" || die "Nombre de linea de trabajo invalido (rama): $branch"
 
   repo_dir="$DEFAULT_PROJECT_DIR"
   [ -n "$repo_dir" ] || repo_dir="$(repo_url_to_dir "$url")"
@@ -1400,8 +1431,8 @@ show_repo_status() {
   move_to_repo_root_if_needed
   msg ""
   msg "${BOLD}Ruta:${RESET} $(pwd -P)"
-  msg "${BOLD}Rama:${RESET} $(current_branch)"
-  msg "${BOLD}Remoto:${RESET} $(git remote get-url origin 2>/dev/null || printf 'sin origin')"
+  msg "${BOLD}Linea de trabajo (rama):${RESET} $(current_branch)"
+  msg "${BOLD}Enlace de GitHub (remote):${RESET} $(git remote get-url origin 2>/dev/null || printf 'sin origin')"
   msg ""
   git status -sb
 }
@@ -1415,14 +1446,14 @@ repo_menu() {
     msg ""
     msg "${BOLD}Asistente del libro${RESET}"
     msg "Ruta: $(pwd -P)"
-    msg "Rama: $BRANCH"
+    msg "Linea de trabajo (rama): $BRANCH"
     msg "------------------------------------"
-    msg "  1) Descargar ultima version (pull)"
-    msg "  2) Subir mis cambios (pull + commit + push)"
-    msg "  3) Ver estado"
-    msg "  4) Configurar nombre/email de Git"
-    msg "  5) Configurar remoto GitHub"
-    msg "  6) Cambiar o crear rama (avanzado)"
+    msg "  1) Descargar la ultima version del equipo (pull)"
+    msg "  2) Guardar y enviar mis cambios (pull + commit + push)"
+    msg "  3) Ver que archivos cambiaron (status)"
+    msg "  4) Configurar mi nombre/correo para guardados (git config)"
+    msg "  5) Configurar enlace con GitHub (remote)"
+    msg "  6) Cambiar linea de trabajo - avanzado (branch)"
     msg "  0) Salir"
     printf "%b " "${YELLOW}Elige una opcion [2]${RESET}" >&2
     IFS= read -r choice || exit 1
@@ -1430,38 +1461,38 @@ repo_menu() {
 
     case "$choice" in
       1)
-        run_safe_action "descargar ultima version" pull_latest
+        run_safe_action "descargar ultima version del equipo" pull_latest
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       2)
-        run_safe_action "subir mis cambios" commit_and_push
+        run_safe_action "guardar y enviar mis cambios" commit_and_push
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       3)
-        run_safe_action "ver estado" show_repo_status
+        run_safe_action "ver archivos cambiados" show_repo_status
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       4)
-        run_safe_action "configurar nombre/email de Git" configure_user
+        run_safe_action "configurar nombre/correo para guardados" configure_user
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       5)
-        run_safe_action "configurar remoto GitHub" ensure_remote
+        run_safe_action "configurar enlace con GitHub" ensure_remote
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       6)
-        warn "Para este equipo recomiendo trabajar en una sola rama: $DEFAULT_BRANCH."
-        run_safe_action "cambiar o crear rama" switch_or_create_branch
+        warn "Para este equipo recomiendo trabajar en una sola linea: $DEFAULT_BRANCH (rama)."
+        run_safe_action "cambiar linea de trabajo" switch_or_create_branch
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
         [ "$action_status" -eq 0 ] && pause_enter
@@ -1482,12 +1513,12 @@ outside_repo_menu() {
 
   while true; do
     msg ""
-    msg "${BOLD}Primer inicio: repositorio del libro${RESET}"
+    msg "${BOLD}Primer inicio: proyecto del libro en GitHub${RESET}"
     msg "Carpeta de trabajo:"
     msg "  $(pwd -P)"
     msg ""
 
-    run_safe_action "configurar y clonar el repositorio" clone_project
+    run_safe_action "configurar y descargar el proyecto" clone_project
     case "$?" in
       0)
         open_saved_workspace_if_available || {
@@ -1499,7 +1530,7 @@ outside_repo_menu() {
         request_restart
         ;;
       *)
-        warn "Volvemos al paso del link del repositorio."
+        warn "Volvemos al paso del link del proyecto."
         ;;
     esac
   done
