@@ -122,6 +122,7 @@ CONFIG_DIR="${HOME:-.}/.libro_sync"
 WORKSPACE_FILE="$CONFIG_DIR/workspace_path"
 SELF_SIGNATURE=""
 RESTART_CODE=88
+NO_PAUSE_CODE=77
 
 msg() { printf "%b\n" "$*" >&2; }
 info() { msg "${BLUE}==>${RESET} $*"; }
@@ -253,6 +254,10 @@ run_safe_action() {
 
   if [ "$status" -eq "$RESTART_CODE" ]; then
     return "$RESTART_CODE"
+  fi
+
+  if [ "$status" -eq "$NO_PAUSE_CODE" ]; then
+    return "$NO_PAUSE_CODE"
   fi
 
   if [ "$status" -ne 0 ]; then
@@ -512,15 +517,6 @@ github_slug_from_url() {
     */*) printf "%s" "$slug" ;;
     *) return 1 ;;
   esac
-}
-
-github_compare_url() {
-  local upstream_slug="$1"
-  local base_branch="$2"
-  local login="$3"
-  local head_branch="$4"
-
-  printf "https://github.com/%s/compare/%s...%s:%s?expand=1" "$upstream_slug" "$base_branch" "$login" "$head_branch"
 }
 
 ensure_gitignore() {
@@ -1008,7 +1004,7 @@ ensure_fork_remote() {
 
 create_pull_request_from_fork() {
   local branch="$1"
-  local gh_bin origin_url upstream_slug login repo_name pr_branch title body pr_output pr_status pr_url compare_url
+  local gh_bin origin_url upstream_slug login repo_name pr_branch title body pr_output pr_status pr_url
 
   gh_bin="$(find_gh_bin 2>/dev/null || true)"
   [ -n "$gh_bin" ] || die "Para solicitar revision (Pull Request) se necesita GitHub CLI (gh)."
@@ -1050,22 +1046,17 @@ Revisar y aceptar este PR para incorporar los cambios al libro."
     msg "$pr_output"
     pr_url="$(printf "%s\n" "$pr_output" | awk '/^https?:\/\// { print; exit }')"
     if [ -n "$pr_url" ]; then
-      info "Abriendo la solicitud de revision (Pull Request):"
+      info "Solicitud de revision (Pull Request):"
       msg "  $pr_url"
-      open_url "$pr_url"
     fi
-    return
+    warn "Copia ese enlace si quieres revisarlo en el navegador."
+    return "$NO_PAUSE_CODE"
   fi
 
-  warn "La linea de trabajo se subio a tu copia personal (fork), pero GitHub CLI no pudo crear la solicitud de revision (Pull Request) automaticamente."
+  err "La linea de trabajo se subio a tu copia personal (fork), pero GitHub CLI no pudo crear la solicitud de revision (Pull Request)."
   warn "Detalle devuelto por GitHub CLI:"
   msg "$pr_output"
-  compare_url="$(github_compare_url "$upstream_slug" "$branch" "$login" "$pr_branch")"
-  msg ""
-  warn "Abre este enlace para crear la solicitud de revision (Pull Request) manualmente:"
-  msg "  $compare_url"
-  open_url "$compare_url"
-  ok "Tus cambios ya estan en tu copia personal (fork). Falta confirmar la solicitud de revision (Pull Request) en el navegador."
+  die "Tus cambios ya estan en tu copia personal (fork), pero falta crear la solicitud de revision. Revisa el mensaje anterior."
 }
 
 push_current_branch() {
@@ -1464,30 +1455,35 @@ repo_menu() {
         run_safe_action "descargar ultima version del equipo" pull_latest
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq "$NO_PAUSE_CODE" ] && continue
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       2)
         run_safe_action "guardar y enviar mis cambios" commit_and_push
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq "$NO_PAUSE_CODE" ] && continue
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       3)
         run_safe_action "ver archivos cambiados" show_repo_status
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq "$NO_PAUSE_CODE" ] && continue
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       4)
         run_safe_action "configurar nombre/correo para guardados" configure_user
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq "$NO_PAUSE_CODE" ] && continue
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       5)
         run_safe_action "configurar enlace con GitHub" ensure_remote
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq "$NO_PAUSE_CODE" ] && continue
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       6)
@@ -1495,6 +1491,7 @@ repo_menu() {
         run_safe_action "cambiar linea de trabajo" switch_or_create_branch
         action_status=$?
         [ "$action_status" -eq "$RESTART_CODE" ] && request_restart
+        [ "$action_status" -eq "$NO_PAUSE_CODE" ] && continue
         [ "$action_status" -eq 0 ] && pause_enter
         ;;
       0)
@@ -1528,6 +1525,9 @@ outside_repo_menu() {
         ;;
       "$RESTART_CODE")
         request_restart
+        ;;
+      "$NO_PAUSE_CODE")
+        continue
         ;;
       *)
         warn "Volvemos al paso del link del proyecto."

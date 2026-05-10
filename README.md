@@ -207,6 +207,27 @@ Si pasa:
 
 Si no estas seguro, no borres contenido. Pide ayuda al equipo.
 
+Tambien puedes ver marcas como estas:
+
+```text
+<<<<<<< Updated upstream
+Texto que vino desde GitHub
+=======
+Texto que tenias en tu computadora
+>>>>>>> Stashed changes
+```
+
+Eso no lo escribe el asistente. Lo escribe Git automaticamente cuando intento
+descargar la version nueva y volver a colocar encima tus cambios locales. En ese
+caso:
+
+- `Updated upstream` es lo que venia de GitHub.
+- `Stashed changes` es lo que tenias guardado temporalmente en tu computadora.
+- La linea `=======` separa ambas versiones.
+
+Debes dejar solo el texto final correcto y borrar las marcas `<<<<<<<`,
+`=======` y `>>>>>>>`.
+
 ## Archivos que se suben y archivos que no
 
 El repositorio ignora archivos temporales generados al compilar LaTeX:
