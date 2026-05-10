@@ -1,0 +1,65 @@
+\chapter{Sintonización PID mediante Eagle Strategy}
+\label{ch:eagle-strategy}
+
+\section{Introducción del capítulo}
+Eagle Strategy no suele presentarse como un algoritmo único y cerrado, sino como un marco de
+búsqueda que alterna exploración global e intensificación local. Su inclusión en esta obra
+resulta útil porque permite discutir una idea muy relevante en optimización aplicada: no todos
+los problemas se benefician de una única dinámica de movimiento; a veces conviene recorrer
+rápidamente regiones amplias y luego afinar solo donde el paisaje de soluciones lo justifica.
+
+\section{Objetivo del capítulo}
+El objetivo de este capítulo es exponer la lógica general de Eagle Strategy y adaptarla a la
+sintonización de controladores PID. Más que profundizar en variantes matemáticas complejas,
+se busca mostrar cómo una estrategia híbrida de dos fases puede organizar la búsqueda de
+ganancias cuando la función objetivo presenta múltiples regiones de interés.
+
+\section{Fundamento del método}
+La idea básica del método consiste en alternar dos momentos. En la primera fase, el algoritmo
+realiza desplazamientos amplios, frecuentemente asociados a saltos aleatorios de tipo Levy, con
+el fin de descubrir nuevas regiones prometedoras del espacio de búsqueda. En la segunda
+fase, una técnica local o semilocal refina la solución encontrada en ese vecindario. El nombre
+del método alude precisamente a esa conducta: detectar desde lejos y atacar con precisión.
+
+\section{Estructura algorítmica}
+En una aplicación al ajuste PID, la fase global puede entenderse como una exploración sobre
+rangos amplios de $K_p$, $K_i$ y $K_d$, mientras que la fase local se concentra en pequeñas
+perturbaciones alrededor de las mejores configuraciones observadas. Esta estructura reduce el
+riesgo de estancamiento temprano y permite aprovechar información local sin renunciar a la
+capacidad de descubrir soluciones alejadas de la inicialización.
+
+\section{Pseudocódigo}
+\begin{algorithm}[H]
+\caption{Esquema general de Eagle Strategy para sintonización PID}
+\begin{algorithmic}[1]
+\State Inicializar una solución o conjunto reducido de soluciones
+\While{no se cumpla el criterio de parada}
+    \State Ejecutar una fase de exploración global sobre el espacio $\left[K_p,K_i,K_d\right]$
+    \State Seleccionar la región o solución más prometedora
+    \State Aplicar una búsqueda local para refinar la sintonización
+    \State Actualizar la mejor solución conocida
+\EndWhile
+\State Entregar la tripleta de ganancias con menor costo
+\end{algorithmic}
+\end{algorithm}
+
+\section{Parámetros relevantes}
+Los parámetros relevantes de esta estrategia dependen de la implementación elegida, pero
+normalmente incluyen amplitud de los saltos globales, tamaño del vecindario local, número de
+refinamientos por ciclo y criterio de cambio entre fases. Esta flexibilidad puede ser una
+fortaleza porque permite adaptar el método a distintos problemas; sin embargo, también exige
+una calibración más cuidadosa que la requerida por algoritmos con estructura más estandarizada.
+
+\section{Aplicación a la sintonización PID}
+Aplicada al problema de sintonización, Eagle Strategy puede utilizarse para detectar primero
+zonas del espacio de ganancias con buen compromiso entre rapidez y amortiguamiento, y luego
+afinar la respuesta en torno a esas zonas usando perturbaciones controladas. Esto la vuelve
+interesante para problemas donde la evaluación del ITAE muestra varios valles locales o donde
+una exploración exclusivamente intensiva podría perder soluciones útiles. En la práctica, su
+desempeño debe juzgarse con el mismo marco comparativo usado para PSO y GWO.
+
+\section{Cierre del capítulo}
+Eagle Strategy aporta una lectura híbrida del problema y refuerza la idea de que una buena
+sintonización depende tanto de la función objetivo como de la manera en que se recorre el
+espacio de búsqueda. El capítulo siguiente cierra el bloque de métodos con Artificial Bee
+Colony, otra propuesta colectiva inspirada en mecanismos cooperativos de búsqueda.

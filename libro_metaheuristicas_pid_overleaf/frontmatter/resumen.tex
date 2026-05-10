@@ -1,0 +1,26 @@
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+
+Este libro presenta una aproximación comparativa a la sintonización de controladores
+PID en sistemas de generación aislados, tomando como caso de referencia una microred
+híbrida hidro-solar ubicada en Limbani, Puno. El punto de partida es la limitación de
+los métodos clásicos de ajuste cuando deben actuar sobre plantas con dinámica no lineal,
+efecto de golpe de ariete, baja inercia y perturbaciones vinculadas con cambios bruscos
+de carga o variaciones de irradiancia solar.
+
+A partir de ese contexto, se desarrolla una formulación del problema de sintonización como
+una tarea de optimización, donde las ganancias $K_p$, $K_i$ y $K_d$ del controlador se
+buscan dentro de un espacio restringido mediante criterios de desempeño como sobreimpulso,
+tiempo de asentamiento e índices integrales de error, con especial atención al ITAE. Sobre
+esa base se revisan los fundamentos del enfoque metaheurístico y se presentan varias
+estrategias de búsqueda, destacando el algoritmo Particle Swarm Optimization (PSO) por
+su equilibrio entre simplicidad, costo computacional y calidad de convergencia.
+
+El desarrollo muestra que una sintonización optimizada permite amortiguar con mayor
+eficacia las oscilaciones de frecuencia, reducir el esfuerzo del servomecanismo hidráulico
+y mejorar la robustez del sistema frente a perturbaciones operativas. Además, se discuten
+las posibilidades de extender el análisis a otros algoritmos de enjambre, esquemas híbridos
+y entornos de validación más cercanos a la implementación industrial.
+
+\bigskip
+\noindent\textbf{Palabras clave:} metaheurísticas, sintonización PID, microredes aisladas, optimización, PSO.

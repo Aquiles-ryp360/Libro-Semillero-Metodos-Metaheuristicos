@@ -1,0 +1,70 @@
+\chapter{Sintonización PID mediante Grey Wolf Optimizer (GWO)}
+\label{ch:gwo}
+
+\section{Introducción del capítulo}
+El Grey Wolf Optimizer pertenece a la familia de algoritmos de enjambre y ha ganado presencia
+en problemas de control por su estructura sencilla y su buena capacidad para balancear
+exploración y explotación. Aunque el borrador principal del proyecto prioriza PSO, la inclusión
+de GWO en este libro permite ampliar la comparación y examinar si una estrategia de jerarquía
+social distinta puede producir sintonías competitivas para el mismo problema hidráulico.
+
+\section{Objetivo del capítulo}
+Este capítulo presenta el fundamento del GWO y su adaptación al ajuste de un controlador PID.
+La meta es mostrar cómo la metáfora de caza cooperativa puede traducirse en una regla de
+actualización útil para recorrer el espacio de ganancias del controlador bajo restricciones
+análogas a las empleadas con PSO.
+
+\section{Inspiración del algoritmo}
+GWO se inspira en la jerarquía de una manada de lobos grises. Los individuos alfa, beta y
+delta representan las mejores soluciones conocidas y guían el movimiento del resto del grupo,
+denominado omega. En términos de optimización, esta jerarquía introduce una forma de
+liderazgo distribuido: la población no sigue a un único óptimo provisional, sino a una tríada de
+referencias que ayuda a reducir el riesgo de convergencia prematura.
+
+\section{Modelo matemático del GWO}
+La posición de cada solución se actualiza a partir de su distancia relativa respecto de los tres
+mejores lobos del grupo. De forma resumida, el algoritmo calcula posiciones intermedias
+asociadas a alfa, beta y delta, y luego combina esas referencias para obtener la nueva solución
+candidata. El parámetro $a$, decreciente con las iteraciones, controla la transición desde una
+fase más exploratoria hacia una fase de refinamiento, lo que constituye uno de los mecanismos
+clásicos de convergencia del método.
+
+\section{Pseudocódigo}
+\begin{algorithm}[H]
+\caption{Esquema general del GWO para sintonización PID}
+\begin{algorithmic}[1]
+\State Inicializar una población de soluciones candidatas
+\State Evaluar cada lobo con la función de costo del problema
+\State Identificar las soluciones alfa, beta y delta
+\While{no se cumpla el criterio de parada}
+    \For{cada lobo}
+        \State Calcular su distancia respecto de alfa, beta y delta
+        \State Actualizar la posición usando la combinación de esas tres referencias
+        \State Restringir la solución al dominio admisible
+    \EndFor
+    \State Revaluar la población y actualizar alfa, beta y delta
+\EndWhile
+\State Entregar la mejor sintonización encontrada
+\end{algorithmic}
+\end{algorithm}
+
+\section{Parámetros de ajuste}
+Los parámetros más influyentes del GWO son el tamaño de la población, el número de
+iteraciones y la evolución del coeficiente de contracción $a$. A diferencia de otros métodos, el
+algoritmo no requiere demasiados hiperparámetros, lo que simplifica su uso comparativo. Esta
+economía de configuración es una de las razones por las que se ha convertido en un candidato
+frecuente para tareas de sintonización en sistemas eléctricos y de potencia.
+
+\section{Aplicación a la sintonización PID}
+En la sintonización PID, cada lobo codifica una tripleta $\left[K_p,K_i,K_d\right]$ y su calidad se
+evalúa mediante los mismos escenarios de simulación empleados con PSO. Esta uniformidad
+metodológica es importante porque permite comparar algoritmos sin introducir sesgos en la
+planta, la función objetivo o las perturbaciones. El interés principal consiste en observar si la
+dinámica de liderazgo múltiple del GWO ofrece ventajas en robustez o en calidad final de la
+respuesta de frecuencia.
+
+\section{Cierre del capítulo}
+GWO aporta una alternativa sobria y competitiva dentro de la familia de métodos de enjambre.
+Su valor dentro de este libro radica en ampliar el horizonte comparativo más allá del PSO. El
+siguiente capítulo introduce Eagle Strategy, una propuesta que combina búsqueda global y
+refinamiento local con una lógica diferente de movimiento.

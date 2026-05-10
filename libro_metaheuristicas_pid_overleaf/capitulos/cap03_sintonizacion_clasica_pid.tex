@@ -1,0 +1,56 @@
+\chapter{Sintonización clásica del PID}
+\label{ch:sintonizacion-clasica}
+
+\section{Introducción del capítulo}
+La historia del controlador PID está estrechamente ligada a métodos de ajuste prácticos que
+buscaban parametrizar el regulador con rapidez y sin necesidad de resolver problemas de
+optimización complejos. En muchos entornos industriales, estas reglas siguen siendo el punto
+de partida porque son fáciles de aplicar y permiten obtener respuestas razonables en procesos
+moderados. Sin embargo, su validez depende de hipótesis que no siempre se cumplen en
+sistemas con baja inercia, dinámica hidráulica o perturbaciones estocásticas.
+
+\section{Objetivo del capítulo}
+Este capítulo describe los métodos clásicos de sintonización PID y discute sus fundamentos,
+supuestos y limitaciones. La intención no es descartarlos por completo, sino mostrar en qué
+condiciones resultan útiles, cuándo se vuelven insuficientes y por qué sirven como línea base
+adecuada para comparar técnicas de ajuste basadas en metaheurísticas.
+
+\section{Métodos empíricos}
+Los métodos empíricos se construyeron a partir de observaciones experimentales y reglas
+heurísticas aplicadas a familias de procesos. Su principal fortaleza es la rapidez: con unas
+pocas pruebas de lazo abierto o lazo cerrado es posible proponer valores iniciales para
+$K_p$, $K_i$ y $K_d$. Entre sus debilidades destacan la dependencia del operador, la dificultad
+para reproducir resultados y la escasa adaptabilidad cuando la planta presenta no linealidades
+o cambia de régimen de operación.
+
+\section{Método de Ziegler--Nichols}
+El método de Ziegler--Nichols, en su versión de lazo cerrado, consiste en llevar el sistema al
+límite de estabilidad hasta identificar la ganancia última $K_u$ y el período último $T_u$. A
+partir de esos dos valores, una tabla fija propone las ganancias del controlador. La lógica del
+método es simple y poderosa: si el proceso puede describirse por su oscilación crítica,
+entonces es posible obtener una sintonización rápida sin resolver un modelo detallado. No
+obstante, esa simplicidad suele traducirse en ajustes agresivos cuando la planta no responde
+como un proceso lineal bien amortiguado.
+
+\section{Otros métodos clásicos}
+Además de Ziegler--Nichols, la literatura clásica incluye enfoques como Cohen--Coon, reglas
+de reacción del proceso y procedimientos iterativos de prueba y error. Cohen--Coon mejora el
+ajuste en ciertos sistemas con retardo significativo, mientras que la prueba y error permite al
+operador incorporar experiencia práctica sobre la planta. A pesar de esas variantes, todos
+comparten una limitación de fondo: su diseño se apoya en aproximaciones locales y no en una
+exploración global del espacio de soluciones.
+
+\section{Limitaciones de los métodos clásicos}
+En sistemas como la microred de Limbani, donde intervienen una turbina Michell--Banki,
+efectos de fase no mínima y perturbaciones rápidas por variación de irradiancia, las reglas
+clásicas pueden conducir a respuestas subamortiguadas y oscilatorias. El controlador logra
+reaccionar, pero lo hace con un costo elevado en tiempo de asentamiento, esfuerzo del
+servomecanismo y calidad de la frecuencia. Estas limitaciones justifican el tránsito hacia
+métodos de optimización que no dependan exclusivamente de una fórmula cerrada, sino de la
+evaluación repetida del desempeño real del sistema.
+
+\section{Cierre del capítulo}
+La sintonización clásica conserva valor como referencia práctica y como punto de comparación.
+Sin embargo, cuando el problema requiere considerar múltiples restricciones y objetivos
+dinámicos al mismo tiempo, resulta más natural reformular el ajuste como un problema de
+optimización. Esa reformulación se desarrolla en el siguiente capítulo.

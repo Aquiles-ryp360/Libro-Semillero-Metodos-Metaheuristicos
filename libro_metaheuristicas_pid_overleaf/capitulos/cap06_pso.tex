@@ -1,0 +1,79 @@
+\chapter{Sintonización PID mediante Particle Swarm Optimization (PSO)}
+\label{ch:pso}
+
+\section{Introducción del capítulo}
+El algoritmo Particle Swarm Optimization es el eje metodológico central del borrador base en
+el que se apoya este libro. Su interés radica en que ofrece una búsqueda cooperativa simple,
+de bajo costo computacional relativo y con muy buenos resultados en problemas de
+sintonización PID donde la evaluación de cada solución depende de una simulación dinámica.
+En el caso de la microred de Limbani, el PSO destaca por su capacidad para adaptarse al
+comportamiento no lineal del conjunto gobernador--turbina.
+
+\section{Objetivo del capítulo}
+Este capítulo explica la lógica del PSO, resume su formulación matemática y muestra cómo se
+adapta al ajuste de las ganancias $K_p$, $K_i$ y $K_d$. El objetivo es dejar claro por qué este
+método constituye una alternativa sólida frente a la sintonización clásica cuando se trabaja con
+criterios como ITAE y escenarios de perturbación severa.
+
+\section{Inspiración del algoritmo}
+PSO se inspira en el comportamiento colectivo de bandadas y enjambres, donde cada
+individuo modifica su movimiento usando tanto su experiencia propia como la información del
+grupo. Trasladado al lenguaje de optimización, cada partícula representa una solución
+candidata y navega por el espacio de búsqueda recordando su mejor posición histórica y la
+mejor posición encontrada por el enjambre. Esa memoria dual permite combinar exploración
+global con convergencia rápida hacia regiones prometedoras.
+
+\section{Modelo matemático del PSO}
+Cada partícula $i$ posee una posición $x_i^k$ y una velocidad $v_i^k$ en la iteración $k$. La
+actualización típica se expresa como
+\[
+v_i^{k+1}=w v_i^k + c_1 r_1\left(pbest_i-x_i^k\right)+c_2 r_2\left(gbest-x_i^k\right),
+\]
+\[
+x_i^{k+1}=x_i^k+v_i^{k+1}.
+\]
+Aquí, $w$ es el factor de inercia, $c_1$ y $c_2$ son coeficientes de aceleración, y $r_1$, $r_2$
+son valores aleatorios uniformes. En la aplicación de este libro, la posición de cada partícula
+corresponde al vector de ganancias $\left[K_p,K_i,K_d\right]$ y su calidad se mide mediante el
+valor del ITAE obtenido en simulación.
+
+\section{Pseudocódigo}
+\begin{algorithm}[H]
+\caption{Esquema general del PSO para sintonización PID}
+\begin{algorithmic}[1]
+\State Inicializar una población de partículas en el espacio $\left[K_p,K_i,K_d\right]$
+\State Evaluar cada partícula mediante la simulación de la planta y el cálculo de ITAE
+\State Guardar $pbest_i$ y $gbest$
+\While{no se cumpla el criterio de parada}
+    \For{cada partícula}
+        \State Actualizar velocidad y posición
+        \State Limitar las ganancias al rango admisible
+        \State Recalcular el costo de la partícula
+        \State Actualizar $pbest_i$ y $gbest$ si mejora el desempeño
+    \EndFor
+\EndWhile
+\State Devolver la mejor tripleta $\left[K_p,K_i,K_d\right]$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Parámetros de ajuste}
+Los parámetros del PSO condicionan fuertemente su desempeño. Un valor intermedio de inercia
+favorece la búsqueda global sin impedir la convergencia; los coeficientes cognitivo y social
+equilibran la atracción hacia la experiencia individual y la colectiva; y el tamaño del enjambre
+determina el nivel de diversidad exploratoria. En el borrador de referencia se consideran
+configuraciones del orden de 15 a 20 partículas y un número moderado de iteraciones, lo que
+resulta suficiente para obtener mejoras claras sin disparar el costo computacional.
+
+\section{Aplicación a la sintonización PID}
+La aplicación del PSO al problema de sintonización es directa: cada partícula codifica una
+tripleta de ganancias del PID y se evalúa haciendo correr el modelo de la microred ante una o
+varias perturbaciones. La función objetivo prioriza respuestas con bajo error acumulado,
+mínimas oscilaciones y recuperación rápida de frecuencia. Esta formulación permite que la
+búsqueda se guíe por el comportamiento real del sistema, en lugar de depender solo de reglas
+empíricas derivadas de una condición crítica idealizada.
+
+\section{Cierre del capítulo}
+PSO representa un punto de equilibrio muy atractivo entre simplicidad algorítmica y calidad de
+la sintonización obtenida. Su desempeño justifica que sea tomado como referencia principal en
+la comparación. Aun así, no es la única alternativa disponible; el capítulo siguiente introduce
+el Grey Wolf Optimizer como otra estrategia de búsqueda basada en inteligencia colectiva.

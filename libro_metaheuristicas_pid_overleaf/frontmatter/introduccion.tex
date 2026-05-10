@@ -1,0 +1,45 @@
+\chapter*{Introducción}
+\addcontentsline{toc}{chapter}{Introducción}
+
+El ajuste de controladores PID continúa siendo uno de los problemas más relevantes de la
+ingeniería de control aplicada. Su vigencia no proviene de la complejidad de su estructura,
+sino precisamente de lo contrario: el PID sigue utilizándose porque ofrece una relación
+muy favorable entre simplicidad, interpretabilidad e impacto práctico. Sin embargo, esa
+utilidad depende directamente de la manera en que se eligen sus ganancias, especialmente
+cuando el sistema controlado exhibe no linealidades, restricciones físicas o perturbaciones
+severas.
+
+En microredes aisladas de base hidroeléctrica, como las que operan en distintas zonas
+altoandinas del Perú, el problema de sintonización adquiere una dimensión crítica. La
+dinámica de la turbina hidráulica, el efecto de golpe de ariete, la variación de la carga y la
+intermitencia de la generación solar pueden degradar rápidamente el comportamiento de un
+controlador sintonizado con reglas clásicas. Lo que en un banco académico luce aceptable,
+en una planta real puede traducirse en oscilaciones de frecuencia, desgaste del actuador y
+mayor vulnerabilidad del sistema ante eventos operativos cotidianos.
+
+Frente a ese escenario, el presente libro aborda la sintonización PID desde una perspectiva
+de optimización. La idea central es considerar que la elección de $K_p$, $K_i$ y $K_d$ no debe
+depender solo de fórmulas cerradas o ajustes de prueba y error, sino de un procedimiento de
+búsqueda orientado por métricas de desempeño claras. En este marco, los algoritmos
+metaheurísticos ofrecen una alternativa atractiva porque permiten explorar espacios de
+solución complejos sin exigir un modelo idealizado del problema.
+
+La obra toma como hilo conductor el caso de una microred hidro-solar aislada en Limbani y
+organiza la discusión en torno a cuatro niveles. Primero, se revisan los fundamentos del
+control PID y los criterios con que se evalúa su desempeño. Segundo, se expone la forma de
+plantear la sintonización como un problema de optimización restringida. Tercero, se estudian
+varios métodos metaheurísticos con énfasis en PSO y su aplicación comparativa frente a
+otros algoritmos de búsqueda. Finalmente, se discuten resultados, alcances y líneas futuras
+de validación.
+
+El recorrido del libro es el siguiente:
+\begin{enumerate}[label=\arabic*.]
+    \item los capítulos iniciales presentan los fundamentos del PID, los criterios de desempeño y las limitaciones de la sintonización clásica;
+    \item los capítulos intermedios formulan el problema de optimización y desarrollan la base conceptual de los métodos metaheurísticos;
+    \item los capítulos dedicados a PSO, GWO, Eagle Strategy y ABC describen su adaptación al problema de sintonización;
+    \item los capítulos finales consolidan la metodología comparativa, los casos de estudio, la discusión de resultados y las conclusiones.
+\end{enumerate}
+
+Más que cerrar el tema, este libro busca dejar una plataforma de trabajo técnicamente
+coherente, visualmente clara y lista para seguir creciendo con nuevos experimentos,
+figuras, tablas y validaciones.

@@ -1,0 +1,63 @@
+\chapter{Formulación del problema de sintonización como optimización}
+\label{ch:formulacion-optimizacion}
+
+\section{Introducción del capítulo}
+Cuando la sintonización PID deja de verse como una regla fija y se entiende como una búsqueda
+de desempeño óptimo, el problema cambia de naturaleza. Ya no se trata solo de aplicar una
+tabla, sino de encontrar el conjunto de ganancias que mejor responde a una planta concreta
+bajo perturbaciones específicas. Esta perspectiva es particularmente útil en sistemas aislados,
+donde el margen de error operativo es pequeño y las consecuencias de una mala regulación se
+manifiestan de forma inmediata.
+
+\section{Objetivo del capítulo}
+El objetivo de este capítulo es definir formalmente la sintonización del PID como un problema
+de optimización restringida. Para ello se identifican las variables de decisión, se formula una
+función objetivo consistente con la dinámica de frecuencia y se delimitan las restricciones
+físicas y numéricas que condicionan la búsqueda.
+
+\section{Variables de decisión}
+Las variables de decisión son las ganancias del controlador: $K_p$, $K_i$ y $K_d$. Cada una
+modifica un aspecto distinto de la respuesta, por lo que el espacio de búsqueda es
+tridimensional y presenta interacciones no triviales entre rapidez, error acumulado y
+amortiguamiento. En términos prácticos, cualquier algoritmo de optimización debe proponer
+tripletas de ganancias candidatas, simular su efecto sobre la planta y conservar aquellas que
+ofrecen mejor desempeño.
+
+\section{Función objetivo}
+La función objetivo adoptada en esta obra se basa en el criterio ITAE, definido como
+\[
+J = \int_0^{t_{\text{sim}}} t\,|\Delta f(t)|\,dt,
+\]
+donde $\Delta f(t)$ representa la desviación de frecuencia. Este índice resulta conveniente
+porque penaliza con fuerza los errores que persisten en el tiempo, favoreciendo respuestas que
+no solo reaccionan rápido, sino que se estabilizan sin oscilaciones prolongadas. Así, la
+optimización se orienta hacia un comportamiento útil desde la operación real del sistema.
+
+\section{Restricciones}
+La búsqueda de ganancias no puede realizarse sobre un dominio ilimitado. Deben imponerse
+rangos admisibles para $K_p$, $K_i$ y $K_d$, así como condiciones de estabilidad, límites del
+actuador y criterios de viabilidad numérica. En aplicaciones hidráulicas también es necesario
+considerar saturación del gobernador, variaciones de caudal y el riesgo de exigir respuestas
+demasiado agresivas que, aunque matemáticamente atractivas, serían inconvenientes para la
+vida útil del sistema.
+
+\section{Espacio de búsqueda}
+El espacio de búsqueda puede interpretarse como el conjunto de todas las tripletas
+$(K_p,K_i,K_d)$ que satisfacen las restricciones previamente definidas. Dentro de ese dominio,
+algunas regiones producen respuestas lentas pero estables; otras generan oscilaciones o
+inestabilidad; y unas pocas concentran soluciones prometedoras. Justamente ahí radica la
+utilidad de los métodos metaheurísticos: recorrer de manera eficiente un espacio irregular sin
+necesidad de gradientes exactos ni modelos convexos.
+
+\section{Modelo de planta y entorno de simulación}
+Como planta de referencia se considera una microred híbrida hidro-solar basada en una turbina
+de flujo cruzado Michell--Banki de 200 kW. El modelo incorpora la dinámica del gobernador y
+la inercia de la columna de agua, responsable del comportamiento de fase no mínima asociado
+al golpe de ariete. La validación se plantea en MATLAB/Simulink mediante escenarios de
+incremento de carga y caída de irradiancia, lo que permite evaluar cada candidato PID en
+condiciones comparables y técnicamente exigentes.
+
+\section{Cierre del capítulo}
+Una vez formulado el problema, la cuestión central deja de ser si existe una buena sintonía y
+pasa a ser cómo encontrarla de manera eficaz. El capítulo siguiente introduce la lógica general
+de los métodos metaheurísticos, que constituyen el marco de búsqueda empleado en esta obra.

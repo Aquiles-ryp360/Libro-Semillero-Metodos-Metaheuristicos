@@ -1,0 +1,53 @@
+\chapter{Conclusiones y trabajos futuros}
+\label{ch:conclusiones}
+
+\section{Introducción del capítulo}
+Toda comparación técnica necesita cerrarse con una lectura de alcance y con una agenda clara
+de continuidad. En el caso de este libro, la discusión final no busca únicamente afirmar que un
+algoritmo fue mejor que otro, sino precisar qué se aprendió sobre la sintonización PID en
+microredes aisladas y cuáles son los siguientes pasos razonables para convertir ese conocimiento
+en una herramienta de diseño más madura.
+
+\section{Objetivo del capítulo}
+Este capítulo sintetiza los hallazgos centrales del estudio, explicita las contribuciones más
+importantes y delimita los aspectos que aún requieren mayor validación. También propone
+líneas de trabajo futuro orientadas a pruebas experimentales, comparación con algoritmos
+adicionales e integración con plataformas de implementación más cercanas a la industria.
+
+\section{Conclusiones generales}
+El hallazgo principal es que la sintonización PID basada en optimización metaheurística ofrece
+una mejora consistente frente a los ajustes clásicos cuando la planta presenta no linealidades y
+perturbaciones severas. El material base centrado en PSO muestra reducciones claras en ITAE,
+tiempo de asentamiento y oscilación de frecuencia, lo que respalda la hipótesis de que una
+búsqueda guiada por desempeño supera a una parametrización obtenida solo a partir de
+ganancia crítica y periodo crítico.
+
+\section{Aportes del libro}
+Entre los aportes más relevantes destacan tres. En primer lugar, se organiza una ruta de
+trabajo completa que une fundamentos del PID, criterios de evaluación y formulación del
+problema como optimización. En segundo lugar, se adapta ese marco al caso de una microred
+hidro-solar andina, aportando una lectura aplicada y no meramente algorítmica. En tercer lugar,
+se deja preparada una estructura comparativa capaz de incorporar no solo PSO, sino también
+GWO, Eagle Strategy y ABC dentro de un mismo esquema metodológico.
+
+\section{Limitaciones}
+El alcance de esta obra es principalmente metodológico y de simulación. Los resultados son
+valiosos para entender tendencias dinámicas, pero todavía dependen de la fidelidad del modelo,
+de la calidad de los parámetros de planta y del entorno numérico empleado. En consecuencia,
+no deben interpretarse como una validación definitiva para implementación industrial directa,
+sino como una base robusta para avanzar hacia pruebas más cercanas a operación real.
+
+\section{Líneas futuras de investigación}
+Las extensiones naturales del estudio incluyen validación Hardware-in-the-Loop, pruebas con
+PLC o controladores industriales, análisis de estabilidad de pequeña señal y campañas
+comparativas con funciones objetivo multiobjetivo. También resulta pertinente explorar
+hibridaciones entre algoritmos, variantes adaptativas de sintonización y estrategias que integren
+restricciones energéticas más explícitas, por ejemplo bajo escenarios prolongados de estiaje o
+alta penetración solar.
+
+\section{Cierre del capítulo}
+La principal conclusión de fondo es que la modernización del control no requiere necesariamente
+reemplazar la estructura PID, sino refinar la manera en que se ajusta. Cuando esa sintonización
+se apoya en métricas pertinentes, modelos consistentes y métodos de búsqueda adecuados, es
+posible obtener mejoras sustanciales con una inversión razonable y con impacto directo sobre la
+confiabilidad de la electrificación rural.

@@ -1,0 +1,52 @@
+\chapter{Resultados y discusión comparativa}
+\label{ch:resultados-discusion}
+
+\section{Introducción del capítulo}
+Este capítulo reúne los hallazgos principales del estudio comparativo y los interpreta a la luz
+del problema físico que se desea resolver. El foco no está solo en identificar qué algoritmo
+produce el menor valor de costo, sino en entender cómo esa sintonización modifica la dinámica
+de frecuencia, el amortiguamiento del sistema y el esfuerzo que debe asumir el actuador
+hidráulico.
+
+\section{Objetivo del capítulo}
+El objetivo es presentar una lectura técnica integrada de los resultados obtenidos en los
+escenarios de validación. Para ello se comparan tendencias de respuesta temporal, métricas
+numéricas y observaciones de robustez, resaltando la forma en que los algoritmos de
+optimización alteran el compromiso entre rapidez y estabilidad.
+
+\section{Resultados por algoritmo}
+De manera general, las sintonizaciones metaheurísticas muestran una mejora visible frente a la
+línea base obtenida con Ziegler--Nichols. En particular, el enfoque basado en PSO tiende a
+reducir el ITAE con mayor consistencia y a ofrecer trayectorias de frecuencia más limpias en los
+escenarios de perturbación. GWO y ABC aportan resultados competitivos en distintas pruebas,
+mientras que Eagle Strategy ofrece una referencia interesante cuando se privilegia una búsqueda
+híbrida entre exploración amplia y refinamiento local.
+
+\section{Análisis comparativo}
+Las diferencias entre algoritmos no deben interpretarse únicamente como una carrera por el
+menor valor numérico. En algunos casos, una sintonización más agresiva reduce el tiempo de
+asentamiento, pero incrementa el esfuerzo de control o acerca la planta a zonas indeseables de
+operación. La ventaja del PSO observada en el borrador de referencia se explica porque logra
+incrementar la capacidad de corrección sin perder amortiguamiento, en buena medida gracias al
+papel de la acción derivativa en la solución encontrada.
+
+\section{Ventajas y desventajas observadas}
+La principal ventaja de los métodos metaheurísticos es que adaptan la sintonización a la planta
+realmente simulada y no a una representación crítica simplificada. Como contraparte, exigen un
+presupuesto computacional mayor y una definición cuidadosa de hiperparámetros. Entre los
+algoritmos comparados, PSO destaca por su sencillez de implementación; GWO por su liderazgo
+múltiple; ABC por su mecanismo de reinicio de soluciones; y Eagle Strategy por su lectura
+híbrida del proceso de búsqueda.
+
+\section{Interpretación ingenieril}
+La lectura física de los resultados es tan importante como la lectura matemática. Menores
+oscilaciones implican menos movimientos bruscos del servomecanismo, menor fatiga mecánica
+y una operación más amigable con la turbina Michell--Banki. Por ello, mejorar sobreimpulso y
+tiempo de asentamiento no solo eleva la calidad de la energía entregada a la carga, sino que
+también protege el hardware existente y reduce la necesidad de soluciones externas costosas,
+como almacenamiento adicional o compensación inercial artificial.
+
+\section{Cierre del capítulo}
+Los resultados respaldan la conveniencia de abordar la sintonización PID desde una lógica de
+optimización y no únicamente mediante reglas históricas. El capítulo final resume los hallazgos,
+define el alcance real del estudio y propone extensiones para fortalecer su validación futura.

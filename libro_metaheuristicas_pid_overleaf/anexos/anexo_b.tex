@@ -1,0 +1,26 @@
+\chapter{Parámetros y configuraciones de simulación}
+\label{anx:parametros}
+
+En este anexo se consignan parámetros de referencia útiles para reproducir el entorno de
+simulación empleado a lo largo del libro. Los valores siguientes no sustituyen la identificación
+final del modelo, pero sirven como base coherente para pruebas preliminares y verificación de
+maquetación.
+
+\begin{longtable}{p{0.36\textwidth}p{0.20\textwidth}p{0.22\textwidth}}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} & \textbf{Unidad / comentario} \\
+\midrule
+Potencia nominal de la microred & 200 & kW \\
+Frecuencia nominal & 60 & Hz \\
+Constante del gobernador $T_g$ & 0.2 & s \\
+Constante del agua $T_w$ & 1.0 & s \\
+Constante de inercia $H$ & 3.0 & s \\
+Amortiguamiento de carga $D$ & 1.0 & pu \\
+Escenario de carga & +10\% & escalón aplicado en el dominio del tiempo \\
+Escenario solar & -50\% & caída de irradiancia en pocos segundos \\
+Tamaño típico de enjambre PSO & 15--20 & partículas \\
+Iteraciones típicas PSO & 20--50 & ajuste experimental \\
+Factor de inercia $w$ & 0.7 & valor de referencia \\
+Coeficientes $c_1$, $c_2$ & 1.5 & ponderación cognitiva y social \\
+\bottomrule
+\end{longtable}

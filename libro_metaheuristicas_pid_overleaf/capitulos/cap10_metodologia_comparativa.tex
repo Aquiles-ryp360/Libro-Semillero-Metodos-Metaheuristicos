@@ -1,0 +1,50 @@
+\chapter{Metodología comparativa del estudio}
+\label{ch:metodologia-comparativa}
+
+\section{Introducción del capítulo}
+Una comparación entre algoritmos solo es válida si todos enfrentan el mismo problema bajo
+condiciones equivalentes. En estudios de sintonización PID esto significa utilizar la misma
+planta, la misma función objetivo, los mismos límites para las ganancias y escenarios de prueba
+igualmente exigentes. De lo contrario, las diferencias observadas podrían provenir del diseño
+experimental y no del algoritmo evaluado.
+
+\section{Objetivo del capítulo}
+El objetivo de este capítulo es establecer un marco de comparación justo entre la sintonización
+clásica y los métodos metaheurísticos desarrollados previamente. Se busca definir cómo se
+construyen los contendientes, qué métricas se observan, qué escenarios se consideran y qué
+criterios permiten interpretar los resultados sin sesgos metodológicos.
+
+\section{Diseño experimental}
+La lógica comparativa propuesta toma como línea base al controlador ajustado mediante
+Ziegler--Nichols y enfrenta esa referencia con controladores PID sintonizados por PSO, GWO,
+Eagle Strategy y ABC. En todos los casos, la planta modelada es la misma microred
+hidro-solar de Limbani y la calidad del ajuste se mide a partir de indicadores transitorios y de
+índices integrales de error. Esto garantiza que la comparación recaiga en la capacidad de
+búsqueda de cada método y no en diferencias de modelado.
+
+\section{Plantas o sistemas de prueba}
+La planta principal es una microred híbrida con generación hidráulica de flujo cruzado y apoyo
+fotovoltaico. Sobre esa base se consideran varias situaciones operativas: régimen nominal,
+escalón positivo de carga, intermitencia solar y pruebas de estrés con restricciones adicionales.
+Esta selección permite observar tanto el comportamiento del controlador cerca del punto de
+operación como su capacidad para responder ante eventos críticos.
+
+\section{Condiciones homogéneas de evaluación}
+Para mantener equidad experimental, todos los algoritmos trabajan sobre el mismo rango de
+ganancias, con idéntica función objetivo basada en ITAE y con igual horizonte de simulación.
+Cuando la estructura del algoritmo lo permite, se procuran presupuestos de búsqueda
+comparables en número de evaluaciones de la planta. Esta decisión evita favorecer a un método
+solo por haberle concedido más intentos de exploración o un problema numérico diferente.
+
+\section{Métricas de comparación}
+El análisis final combina criterios cuantitativos y cualitativos. Entre los primeros destacan
+sobreimpulso, tiempo de asentamiento, error estacionario, ITAE y, cuando corresponde, costo
+computacional. Entre los segundos se consideran la suavidad de la actuación, la robustez frente
+a perturbaciones distintas y la coherencia física de la solución encontrada. Esta lectura mixta es
+necesaria porque una sintonización óptima en papel no siempre es la más conveniente para
+proteger el equipo o facilitar una implementación real.
+
+\section{Cierre del capítulo}
+Con el marco comparativo definido, el siguiente paso consiste en describir con mayor detalle los
+casos de estudio y los escenarios de operación que servirán para poner a prueba las distintas
+estrategias de sintonización.

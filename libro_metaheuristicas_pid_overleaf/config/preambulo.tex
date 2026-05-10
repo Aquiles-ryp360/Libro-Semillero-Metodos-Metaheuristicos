@@ -1,0 +1,101 @@
+% ---------------------------------
+% Motor, idioma y tipografías
+% ---------------------------------
+\usepackage{iftex}
+\ifPDFTeX
+  \PackageError{config/preambulo}{Este proyecto requiere XeLaTeX o LuaLaTeX}{Compila con xelatex o lualatex para usar fontspec y las fuentes del libro.}
+\fi
+
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\usepackage{babel}
+\babelprovide[main,import]{spanish}
+\usepackage{microtype}
+
+% Fuente principal del cuerpo: Acumin Pro si existe, si no Calibri.
+\IfFontExistsTF{Acumin Pro}{%
+  \setmainfont{Acumin Pro}%
+}{%
+  \IfFontExistsTF{Calibri}{%
+    \setmainfont{Calibri}%
+  }{%
+    \PackageWarningNoLine{config/preambulo}{Ni Acumin Pro ni Calibri estan instaladas. Se usara TeX Gyre Heros como reemplazo temporal}%
+    \setmainfont{TeX Gyre Heros}%
+  }%
+}
+
+\IfFontExistsTF{Oswald}{%
+  \newfontfamily\chapterfont{Oswald}[Scale=MatchUppercase]%
+}{%
+  \PackageWarningNoLine{config/preambulo}{La fuente Oswald no esta instalada. Se usara TeX Gyre Heros como reemplazo temporal}%
+  \newfontfamily\chapterfont{TeX Gyre Heros}[Scale=MatchUppercase]%
+}
+
+\IfFontExistsTF{Poppins}{%
+  \newfontfamily\sectionfont{Poppins}[Scale=MatchUppercase]%
+}{%
+  \PackageWarningNoLine{config/preambulo}{La fuente Poppins no esta instalada. Se usara TeX Gyre Heros como reemplazo temporal}%
+  \newfontfamily\sectionfont{TeX Gyre Heros}[Scale=MatchUppercase]%
+}
+
+% ---------------------------------
+% Geometría y espaciado
+% ---------------------------------
+\usepackage[a4paper,margin=2.5cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{1.25em}
+
+% ---------------------------------
+% Matemática y símbolos
+% ---------------------------------
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{bm}
+\usepackage{siunitx}
+\sisetup{output-decimal-marker={,}}
+
+% ---------------------------------
+% Figuras, tablas y color
+% ---------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% ---------------------------------
+% Listas, enlaces y utilidades
+% ---------------------------------
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{csquotes}
+\usepackage{emptypage}
+
+% ---------------------------------
+% Pseudocódigo y cajas
+% ---------------------------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[most]{tcolorbox}
+
+% ---------------------------------
+% Encabezados
+% ---------------------------------
+\usepackage{fancyhdr}
+
+% ---------------------------------
+% Títulos
+% ---------------------------------
+\usepackage{titlesec}
+
+% ---------------------------------
+% Marcadores auxiliares
+% ---------------------------------
+\usepackage{ifthen}

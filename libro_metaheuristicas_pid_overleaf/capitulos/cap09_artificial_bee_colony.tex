@@ -1,0 +1,67 @@
+\chapter{Sintonización PID mediante Artificial Bee Colony (ABC)}
+\label{ch:abc}
+
+\section{Introducción del capítulo}
+Artificial Bee Colony es un algoritmo inspirado en la búsqueda cooperativa de alimento por
+parte de una colonia de abejas. Su interés para la sintonización PID proviene de la forma en
+que reparte el trabajo entre exploración, explotación y reemplazo de soluciones estancadas,
+lo que puede ayudar a mantener diversidad poblacional durante la optimización. Esto resulta
+atractivo en problemas donde varias combinaciones de ganancias producen respuestas
+aparentemente buenas, pero no todas son igual de robustas.
+
+\section{Objetivo del capítulo}
+Este capítulo presenta la lógica del ABC y describe cómo puede adaptarse al ajuste del PID en
+una microred aislada. La meta es comprender el papel que cumplen las abejas empleadas,
+observadoras y exploradoras dentro del proceso de búsqueda, y evaluar por qué esta división
+de funciones puede ser útil en una comparación algorítmica amplia.
+
+\section{Inspiración del algoritmo}
+El modelo distingue tres tipos de agentes. Las abejas empleadas exploran y refinan fuentes de
+alimento ya conocidas; las observadoras seleccionan probabilísticamente las fuentes más
+prometedoras para intensificar la búsqueda; y las exploradoras abandonan soluciones pobres o
+estancadas para descubrir nuevas regiones del espacio. Esta organización constituye un
+mecanismo natural de balance entre memoria, selección y reinicio.
+
+\section{Modelo matemático del ABC}
+En términos de optimización, cada fuente de alimento representa una solución candidata. Una
+nueva solución se genera perturbando una fuente existente con respecto a otra solución de la
+población, lo que introduce variación dirigida sin perder completamente la referencia previa.
+Si la nueva solución mejora el costo, reemplaza a la original; si no mejora durante cierto número
+de intentos, la fuente se abandona y se crea una nueva solución aleatoria, preservando así la
+diversidad del proceso.
+
+\section{Pseudocódigo}
+\begin{algorithm}[H]
+\caption{Esquema general del ABC para sintonización PID}
+\begin{algorithmic}[1]
+\State Inicializar fuentes de alimento en el espacio de ganancias del PID
+\State Evaluar cada fuente con la función de costo del problema
+\While{no se cumpla el criterio de parada}
+    \State Fase de abejas empleadas: generar y evaluar soluciones vecinas
+    \State Fase de observadoras: seleccionar fuentes promisorias e intensificar búsqueda
+    \State Fase de exploradoras: reemplazar fuentes estancadas por nuevas soluciones
+    \State Actualizar la mejor solución global
+\EndWhile
+\State Devolver la mejor tripleta $\left[K_p,K_i,K_d\right]$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Parámetros de ajuste}
+Los parámetros centrales del ABC son el tamaño de la colonia, el número de ciclos y el límite
+de intentos sin mejora antes de abandonar una fuente. Este último parámetro es particularmente
+importante porque regula cuándo conviene insistir en una región prometedora y cuándo es mejor
+reiniciar la búsqueda. Una configuración demasiado conservadora puede frenar la exploración;
+una demasiado agresiva puede impedir la explotación adecuada de soluciones valiosas.
+
+\section{Aplicación a la sintonización PID}
+En el problema de interés, cada fuente de alimento codifica una combinación de $K_p$, $K_i$ y
+$K_d$. La evaluación se realiza a través de simulaciones del sistema hidro-solar ante cambios
+de carga e intermitencia solar, usando ITAE y métricas complementarias como tiempo de
+asentamiento y sobreimpulso. Así, la comparación con PSO, GWO y Eagle Strategy se mantiene
+en un marco homogéneo, donde lo que cambia es la dinámica de búsqueda y no la definición
+del problema.
+
+\section{Cierre del capítulo}
+Con ABC se completa el bloque de métodos metaheurísticos seleccionados para esta obra. A
+partir de aquí, la discusión se desplaza desde el funcionamiento individual de cada algoritmo
+hacia el diseño comparativo que permite enfrentarlos bajo criterios y escenarios comunes.

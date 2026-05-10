@@ -1,0 +1,79 @@
+\chapter{Fundamentos del controlador PID}
+\label{ch:fundamentos-pid}
+
+\section{Introducción del capítulo}
+El controlador proporcional--integral--derivativo constituye una de las herramientas más
+utilizadas para regular variables de proceso en ingeniería. Su permanencia se explica por la
+relación favorable entre sencillez estructural, interpretabilidad física y capacidad de
+adaptación a problemas reales. En sistemas eléctricos aislados, donde la frecuencia debe
+recuperarse con rapidez y sin oscilaciones excesivas, comprender el papel de cada acción
+del PID resulta imprescindible antes de discutir cualquier método de sintonización.
+
+\section{Objetivo del capítulo}
+Este capítulo presenta los principios de funcionamiento del PID y describe cómo la acción
+proporcional, integral y derivativa afectan la respuesta transitoria y estacionaria del sistema.
+El propósito es establecer una base conceptual sólida para que, en los capítulos posteriores,
+la optimización de las ganancias no se interprete como un ajuste ciego, sino como una
+decisión informada sobre velocidad, error residual y amortiguamiento.
+
+\section{Estructura general del controlador PID}
+En su forma más conocida, el PID genera una señal de control a partir del error entre la
+referencia y la salida medida. La acción proporcional responde al error instantáneo; la
+integral acumula el historial del error para corregir desviaciones persistentes; y la derivativa
+anticipa la tendencia futura al observar la rapidez con que cambia la señal. Esta combinación
+permite construir un regulador flexible, capaz de equilibrar rapidez y estabilidad cuando sus
+parámetros se eligen de forma adecuada.
+
+\section{Acción proporcional}
+La ganancia proporcional $K_p$ establece la intensidad con la que el controlador reacciona
+ante un error presente. Cuando $K_p$ aumenta, el sistema suele responder con mayor rapidez,
+pero también crece el riesgo de sobreimpulso y de oscilaciones, sobre todo en plantas con
+retardos, dinámica no mínima o acoplamientos hidráulicos. En una microred aislada, un
+$K_p$ demasiado bajo vuelve lenta la recuperación de frecuencia, mientras que uno
+excesivamente alto puede provocar ciclos de corrección agresivos sobre el gobernador.
+
+\section{Acción integral}
+La acción integral, ponderada por $K_i$, tiene como misión eliminar el error en estado
+estacionario. Su efecto es especialmente valioso cuando existen perturbaciones sostenidas o
+sesgos estructurales que impiden alcanzar exactamente la referencia. No obstante, una
+integración demasiado fuerte puede introducir oscilaciones de baja frecuencia y fenómenos de
+windup cuando el actuador trabaja cerca de sus límites físicos, por lo que su ajuste debe
+considerar tanto precisión como restricciones de operación.
+
+\section{Acción derivativa}
+La acción derivativa, asociada a $K_d$, actúa como un mecanismo de amortiguamiento porque
+responde a la velocidad de cambio del error. En términos prácticos, aporta un efecto de
+``frenado anticipatorio'' que ayuda a reducir rebotes y a suavizar la trayectoria de retorno a la
+referencia. Su utilidad es notoria en sistemas donde la planta tiende a comportarse de forma
+subamortiguada; sin embargo, también es sensible al ruido de medición, lo que obliga a usarla
+con criterio, especialmente en implementaciones digitales.
+
+\section{Formulación matemática}
+En tiempo continuo, la ley de control puede escribirse como
+\[
+u(t)=K_p e(t)+K_i \int_0^t e(\tau)\,d\tau +K_d \frac{de(t)}{dt}.
+\]
+En el dominio de Laplace, esta expresión conduce a la función de transferencia del
+controlador
+\[
+G_c(s)=K_p+\frac{K_i}{s}+K_d s.
+\]
+Cuando el controlador se implementa en un PLC o en una plataforma digital, la acción integral
+y derivativa se aproximan mediante diferencias finitas y tiempos de muestreo definidos. Esa
+versión discreta es la que normalmente se usa en simulaciones y prototipos aplicados a
+microredes modernas.
+
+\section{Ventajas y limitaciones}
+Entre las principales fortalezas del PID destacan su bajo costo computacional, su facilidad de
+implementación y la posibilidad de interpretar físicamente cada parámetro. Por ello, sigue
+siendo el estándar industrial incluso en aplicaciones complejas. Su limitación principal no es
+la estructura en sí, sino la dependencia crítica del método de sintonización: cuando la planta
+es fuertemente no lineal o trabaja bajo perturbaciones variables, un ajuste deficiente degrada
+rápidamente el desempeño y puede anular las ventajas del controlador.
+
+\section{Cierre del capítulo}
+Comprender el PID como una combinación de rapidez, memoria y amortiguamiento permite
+entender por qué su ajuste no puede reducirse a una fórmula universal. El siguiente capítulo
+profundiza precisamente en los criterios con que se juzga si una sintonización es buena o
+deficiente, es decir, en las métricas que permiten comparar objetivamente distintas
+configuraciones del controlador.

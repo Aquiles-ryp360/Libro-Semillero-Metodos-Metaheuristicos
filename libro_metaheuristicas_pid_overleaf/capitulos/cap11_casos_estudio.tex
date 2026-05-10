@@ -1,0 +1,48 @@
+\chapter{Casos de estudio y escenarios de simulación}
+\label{ch:casos-estudio}
+
+\section{Introducción del capítulo}
+Los resultados de una sintonización solo adquieren significado cuando se observan sobre
+escenarios de operación concretos. Por ello, este capítulo organiza el estudio en torno a casos
+que representan eventos técnicamente plausibles dentro de una microred aislada con soporte
+hidráulico y solar. La intención es que las respuestas del controlador no se evalúen en
+abstracto, sino ante perturbaciones con interpretación física clara.
+
+\section{Objetivo del capítulo}
+El objetivo de este capítulo es describir el conjunto de casos y escenarios que sirven como
+banco de validación para las sintonizaciones propuestas. Se busca justificar su pertinencia
+técnica y mostrar cómo cada uno pone en evidencia diferentes aspectos del desempeño del
+controlador: rapidez, amortiguamiento, robustez y esfuerzo del actuador.
+
+\section{Caso de estudio 1}
+El primer caso corresponde a la operación nominal del sistema hidro-solar de Limbani, donde la
+demanda y las condiciones de generación se mantienen alrededor de valores de referencia. Este
+caso no pretende estresar al controlador, sino verificar que la sintonización elegida produzca
+una regulación estable y coherente en el punto de operación base. Sirve también para
+establecer una línea de observación previa a las perturbaciones.
+
+\section{Caso de estudio 2}
+El segundo caso incorpora un incremento abrupto de carga del 10\%, representativo del
+encendido repentino de maquinaria, iluminación pública o equipos comunales. Esta prueba es
+crítica porque obliga al sistema a recuperar frecuencia en un contexto de déficit instantáneo de
+potencia. Aquí se observan con claridad el nadir de frecuencia, la presencia de oscilaciones y
+la rapidez de retorno a la banda de operación aceptable.
+
+\section{Caso de estudio 3}
+El tercer caso reproduce una caída pronunciada de irradiancia, por ejemplo una reducción del
+50\% en pocos segundos debido al paso de nubosidad densa. A diferencia del escalón de carga,
+este evento está asociado a la baja inercia de la generación fotovoltaica y a la necesidad de que
+la turbina hidráulica absorba el desbalance con rapidez. Es un escenario particularmente útil
+para analizar robustez en sistemas híbridos de electrificación rural.
+
+\section{Escenarios de perturbación o incertidumbre}
+Como extensión del estudio determinista, puede considerarse un banco de pruebas virtual con
+interfaz HMI que permita inyectar perturbaciones manuales y estocásticas durante la
+simulación. Dos ejemplos relevantes son la condición de noche, en la que el aporte solar cae a
+cero, y la condición de sequía, donde se restringe la apertura hidráulica disponible. Este tipo de
+validación añade realismo y permite explorar márgenes operativos más allá de señales idealizadas.
+
+\section{Cierre del capítulo}
+Los casos de estudio definidos en este capítulo ofrecen una base suficiente para comparar de
+forma consistente las estrategias de sintonización. A continuación se presentan los resultados y
+su discusión, integrando tanto la lectura numérica como la interpretación física del sistema.

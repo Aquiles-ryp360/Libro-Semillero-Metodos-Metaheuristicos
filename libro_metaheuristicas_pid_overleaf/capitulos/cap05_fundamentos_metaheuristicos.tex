@@ -1,0 +1,54 @@
+\chapter{Fundamentos de los métodos metaheurísticos}
+\label{ch:fundamentos-metaheuristicos}
+
+\section{Introducción del capítulo}
+Las metaheurísticas surgieron como respuesta a problemas de optimización donde los métodos
+exactos, deterministas o basados en gradiente no resultaban prácticos. En esos contextos, lo
+importante no es garantizar una solución cerrada, sino encontrar soluciones de alta calidad en
+espacios amplios, no lineales y frecuentemente multimodales. La sintonización PID en
+microredes aisladas encaja bien en esta categoría, ya que combina restricciones físicas,
+objetivos dinámicos y fuerte interacción entre parámetros.
+
+\section{Objetivo del capítulo}
+Este capítulo presenta la lógica común que comparten los métodos metaheurísticos y ofrece el
+vocabulario mínimo necesario para estudiar después algoritmos particulares como PSO, GWO,
+Eagle Strategy y ABC. Se busca mostrar que, más allá de su inspiración biológica o social,
+todos persiguen un equilibrio entre explorar alternativas nuevas y explotar las soluciones que
+ya demostraron ser prometedoras.
+
+\section{Concepto de metaheurística}
+Una metaheurística puede definirse como una estrategia general de búsqueda capaz de guiar
+la exploración de soluciones en problemas complejos sin requerir información exacta sobre la
+forma analítica del óptimo. En lugar de seguir una trayectoria única, estas técnicas utilizan
+poblaciones, reglas estocásticas, memoria parcial y criterios de actualización que permiten
+recorrer el espacio de búsqueda con flexibilidad. Por ello resultan especialmente útiles en
+aplicaciones donde la función objetivo depende de simulaciones o evaluaciones costosas.
+
+\section{Exploración y explotación}
+El corazón de toda metaheurística es el equilibrio entre exploración y explotación. Explorar
+significa visitar regiones nuevas del espacio de búsqueda para evitar quedar atrapado en
+óptimos locales; explotar significa refinar las mejores soluciones conocidas para mejorar su
+calidad. Si el algoritmo explora demasiado, tarda en converger; si explota demasiado pronto,
+puede estancarse en soluciones mediocres. El diseño de parámetros y operadores busca
+justamente administrar esa tensión.
+
+\section{Ventajas frente a métodos clásicos}
+Frente a reglas clásicas como Ziegler--Nichols, las metaheurísticas ofrecen la ventaja de buscar
+ganancias directamente sobre el desempeño observado en simulación o experimento. Esto les
+permite incorporar restricciones, múltiples métricas y comportamientos no lineales sin reducir
+la planta a una representación excesivamente simplificada. Aunque requieren más cómputo, ese
+costo suele ser aceptable cuando se busca una sintonización fuera de línea que luego será
+implementada en un controlador industrial convencional.
+
+\section{Clasificación general}
+De manera general, las metaheurísticas pueden agruparse en métodos evolutivos, métodos de
+enjambre e híbridos. Los primeros se inspiran en selección, cruce y mutación; los segundos
+modelan cooperación social, colonias o patrones colectivos; los híbridos combinan operadores
+de diferentes familias para mejorar convergencia o robustez. En esta obra se prioriza la familia
+de enjambre porque ha mostrado buenos resultados en control de frecuencia y porque permite
+una implementación comparativa relativamente homogénea entre algoritmos.
+
+\section{Cierre del capítulo}
+Con esta base conceptual, ya es posible estudiar algoritmos concretos sin perder de vista la
+idea general que los conecta. El capítulo siguiente desarrolla el método PSO, que sirve como
+punto de referencia principal en la propuesta comparativa del libro.

@@ -1,0 +1,54 @@
+\chapter{Criterios de desempeño en sistemas de control}
+\label{ch:criterios-desempeno}
+
+\section{Introducción del capítulo}
+No basta con afirmar que un controlador ``funciona''; es necesario establecer cómo se mide su
+calidad. En problemas de regulación de frecuencia, la percepción de buen desempeño depende
+de variables concretas: qué tan profunda es la desviación inicial, cuánto tarda el sistema en
+recuperarse y cuánta energía acumulada queda asociada al error. Estas métricas permiten pasar
+de una evaluación cualitativa a una comparación técnicamente defendible.
+
+\section{Objetivo del capítulo}
+El propósito de este capítulo es presentar los indicadores más utilizados para valorar la
+respuesta dinámica de un sistema controlado y justificar cuáles de ellos resultan más útiles
+para una comparativa entre sintonización clásica y sintonización optimizada. Se busca, además,
+conectar cada criterio con implicancias físicas reales sobre calidad de energía, esfuerzo del
+actuador y estabilidad global.
+
+\section{Indicadores temporales}
+Los indicadores temporales describen la forma visible de la respuesta en el dominio del tiempo.
+El tiempo de subida informa cuán rápido reacciona el sistema; el sobreimpulso máximo muestra
+la severidad del pico transitorio; el tiempo de asentamiento refleja cuánto demora la variable en
+permanecer dentro de una banda aceptable; y el error en estado estacionario evidencia si el
+controlador logra o no eliminar la desviación residual. En microredes aisladas, estos
+indicadores se vinculan directamente con la continuidad del servicio y la protección de equipos.
+
+\section{Índices integrales de error}
+Los índices integrales condensan el desempeño completo de la respuesta en un único valor
+acumulado. El IAE suma el valor absoluto del error; el ISE penaliza con mayor intensidad los
+errores grandes; el ITSE enfatiza errores tardíos al multiplicarlos por el tiempo y por su valor
+cuadrático; y el ITAE pondera el error absoluto con el tiempo, castigando de manera especial
+las oscilaciones persistentes. Por esta razón, el ITAE es especialmente atractivo cuando se
+busca una respuesta rápida, limpia y con mínima cola transitoria.
+
+\section{Robustez y sensibilidad}
+Un controlador no debe evaluarse solo bajo condiciones ideales, sino también por su capacidad
+de sostener el desempeño cuando cambian la carga, la irradiancia o ciertos parámetros de la
+planta. La robustez se refiere precisamente a esa capacidad de conservar estabilidad y calidad
+de respuesta frente a incertidumbres y perturbaciones. La sensibilidad, por su parte, ayuda a
+identificar cuánto se altera la salida ante variaciones del modelo o del lazo de control; un
+sistema excesivamente sensible suele ser frágil en operación real.
+
+\section{Criterios para la comparación de sintonías}
+Para el enfoque de este libro se emplearán tres niveles de comparación. En primer lugar, se
+considerarán sobreimpulso, tiempo de asentamiento y error estacionario como indicadores
+directamente interpretables desde la operación del sistema. En segundo lugar, se utilizará el
+ITAE como función objetivo principal porque resume la penalización sobre errores persistentes.
+Finalmente, se incorporará una lectura cualitativa de robustez, asociada al esfuerzo del
+gobernador y a la suavidad de la recuperación de frecuencia.
+
+\section{Cierre del capítulo}
+Una vez definidos los criterios de evaluación, es posible revisar con mayor precisión los
+métodos tradicionales de ajuste y entender por qué, en ciertos sistemas, estos ya no resultan
+suficientes. El capítulo siguiente examina precisamente la sintonización clásica del PID y su
+alcance real frente a plantas complejas como las microredes hidro-solares aisladas.

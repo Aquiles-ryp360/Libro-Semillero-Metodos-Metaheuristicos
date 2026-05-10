@@ -1,0 +1,79 @@
+% !TEX program = xelatex
+
+\documentclass[12pt,oneside,openany,a4paper]{book}
+
+\input{config/preambulo}
+\input{config/metadata}
+\input{config/estilos}
+
+\begin{document}
+
+% -----------------------------
+% Páginas preliminares
+% -----------------------------
+\frontmatter
+\pagestyle{empty}
+
+\input{frontmatter/portada}
+\cleardoublepage
+\input{frontmatter/portadilla}
+\cleardoublepage
+\input{frontmatter/creditos}
+\cleardoublepage
+\input{frontmatter/dedicatoria}
+\cleardoublepage
+\input{frontmatter/agradecimientos}
+\cleardoublepage
+\input{frontmatter/prologo}
+\cleardoublepage
+
+\pagestyle{plain}
+\tableofcontents
+\cleardoublepage
+\listoffigures
+\cleardoublepage
+\listoftables
+\cleardoublepage
+
+\input{frontmatter/lista_abreviaturas}
+\cleardoublepage
+\input{frontmatter/resumen}
+\cleardoublepage
+\input{frontmatter/abstract}
+\cleardoublepage
+\input{frontmatter/introduccion}
+\cleardoublepage
+
+% -----------------------------
+% Cuerpo principal
+% -----------------------------
+\mainmatter
+\pagestyle{fancy}
+
+\input{capitulos/cap01_fundamentos_control_pid}
+\input{capitulos/cap02_criterios_desempeno}
+\input{capitulos/cap03_sintonizacion_clasica_pid}
+\input{capitulos/cap04_formulacion_problema_optimizacion}
+\input{capitulos/cap05_fundamentos_metaheuristicos}
+\input{capitulos/cap06_pso}
+\input{capitulos/cap07_gwo}
+\input{capitulos/cap08_eagle_strategy}
+\input{capitulos/cap09_artificial_bee_colony}
+\input{capitulos/cap10_metodologia_comparativa}
+\input{capitulos/cap11_casos_estudio}
+\input{capitulos/cap12_resultados_discusion}
+\input{capitulos/cap13_conclusiones_trabajos_futuros}
+
+% -----------------------------
+% Material final
+% -----------------------------
+\backmatter
+\input{backmatter/referencias}
+\cleardoublepage
+\input{backmatter/autores}
+\cleardoublepage
+\appendix
+\input{anexos/anexo_a}
+\input{anexos/anexo_b}
+
+\end{document}
