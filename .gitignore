@@ -23,6 +23,7 @@
 
 # Generated documents
 *.pdf
+!pso final borrador.pdf
 
 # LaTeX temporary folders
 _minted-*/
