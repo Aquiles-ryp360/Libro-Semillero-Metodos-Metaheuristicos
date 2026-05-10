@@ -497,6 +497,23 @@ detect_remote_default_branch() {
   fi
 }
 
+github_slug_from_url() {
+  local url="$1"
+  local slug
+
+  slug="${url%.git}"
+  slug="${slug%/}"
+  slug="${slug#https://github.com/}"
+  slug="${slug#http://github.com/}"
+  slug="${slug#git@github.com:}"
+  slug="${slug#ssh://git@github.com/}"
+
+  case "$slug" in
+    */*) printf "%s" "$slug" ;;
+    *) return 1 ;;
+  esac
+}
+
 ensure_gitignore() {
   if [ -f ".gitignore" ]; then
     ok ".gitignore ya existe."
@@ -883,6 +900,52 @@ status_has_changes() {
   [ -n "$(git status --short)" ]
 }
 
+remote_branch_ref() {
+  local remote="$1"
+  local branch="$2"
+  printf "%s/%s" "$remote" "$branch"
+}
+
+remote_branch_exists_locally() {
+  local remote="$1"
+  local branch="$2"
+  git rev-parse --verify --quiet "$(remote_branch_ref "$remote" "$branch")" >/dev/null
+}
+
+unpushed_commit_count() {
+  local branch="$1"
+  local remote_ref
+
+  remote_ref="$(remote_branch_ref origin "$branch")"
+  if remote_branch_exists_locally origin "$branch"; then
+    git rev-list --count "${remote_ref}..HEAD" 2>/dev/null || printf "0"
+  elif git_has_commits; then
+    git rev-list --count HEAD 2>/dev/null || printf "0"
+  else
+    printf "0"
+  fi
+}
+
+has_unpushed_commits() {
+  local branch="$1"
+  [ "$(unpushed_commit_count "$branch")" -gt 0 ]
+}
+
+show_unpushed_commits() {
+  local branch="$1"
+  local remote_ref
+
+  remote_ref="$(remote_branch_ref origin "$branch")"
+  msg ""
+  warn "Hay commits locales que aun no estan en GitHub."
+  if remote_branch_exists_locally origin "$branch"; then
+    git log --oneline "${remote_ref}..HEAD" >&2 || true
+  else
+    git log --oneline -5 >&2 || true
+  fi
+  msg ""
+}
+
 add_files_interactively() {
   local path added_any
   added_any="n"
@@ -904,6 +967,108 @@ add_files_interactively() {
   [ "$added_any" = "s" ] || die "No seleccionaste archivos para subir."
 }
 
+ensure_fork_remote() {
+  local gh_bin="$1"
+  local upstream_slug="$2"
+  local login="$3"
+  local repo_name="$4"
+  local fork_url
+
+  fork_url="https://github.com/${login}/${repo_name}.git"
+
+  if git remote get-url fork >/dev/null 2>&1; then
+    git remote set-url fork "$fork_url" || die "No pude actualizar el remoto fork."
+    return
+  fi
+
+  info "Creando o verificando tu fork en GitHub: ${login}/${repo_name}"
+  "$gh_bin" api -X POST "repos/${upstream_slug}/forks" >/dev/null 2>&1 || true
+
+  for _ in 1 2 3 4 5; do
+    if "$gh_bin" repo view "${login}/${repo_name}" >/dev/null 2>&1; then
+      git remote add fork "$fork_url" || git remote set-url fork "$fork_url" || die "No pude configurar el remoto fork."
+      ok "Fork configurado como remoto 'fork': $fork_url"
+      return
+    fi
+    sleep 2
+  done
+
+  die "No pude confirmar que exista el fork ${login}/${repo_name}. Revisa GitHub y vuelve a intentar."
+}
+
+create_pull_request_from_fork() {
+  local branch="$1"
+  local gh_bin origin_url upstream_slug login repo_name pr_branch title body
+
+  gh_bin="$(find_gh_bin 2>/dev/null || true)"
+  [ -n "$gh_bin" ] || die "Para crear Pull Request se necesita GitHub CLI (gh)."
+  ensure_github_login || die "No se pudo iniciar sesion en GitHub CLI."
+
+  origin_url="$(git remote get-url origin 2>/dev/null || true)"
+  upstream_slug="$(github_slug_from_url "$origin_url")" || die "No pude reconocer el repo de GitHub desde origin: $origin_url"
+  login="$("$gh_bin" api user --jq .login 2>/dev/null || true)"
+  [ -n "$login" ] || die "No pude detectar tu usuario de GitHub."
+  repo_name="${upstream_slug##*/}"
+
+  ensure_fork_remote "$gh_bin" "$upstream_slug" "$login" "$repo_name"
+
+  pr_branch="sync-${login}-$(date +%Y%m%d-%H%M%S)"
+  info "Subiendo tus commits a tu fork: fork/$pr_branch"
+  git push -u fork "HEAD:${pr_branch}" || die "No pude subir tus commits al fork."
+
+  title="$(git log -1 --pretty=%s 2>/dev/null || printf "Aporte desde sync.cmd")"
+  body="Pull request creado automaticamente por sync.cmd porque esta cuenta no tiene permiso directo para escribir en ${upstream_slug}.
+
+Resumen:
+- Usuario: ${login}
+- Rama local: ${branch}
+- Rama del fork: ${login}:${pr_branch}
+
+Revisar y aceptar este PR para incorporar los cambios al libro."
+
+  info "Creando Pull Request hacia ${upstream_slug}:${branch}"
+  "$gh_bin" pr create \
+    --repo "$upstream_slug" \
+    --base "$branch" \
+    --head "${login}:${pr_branch}" \
+    --title "$title" \
+    --body "$body" || die "No pude crear el Pull Request. Revisa si ya existe uno abierto para estos commits."
+
+  ok "Pull Request creado. Un mantenedor del repo debe revisarlo y aceptarlo."
+}
+
+push_current_branch() {
+  local branch="$1"
+  local push_log push_status
+
+  info "Enviando cambios: git push -u origin $branch"
+  push_log="${TMPDIR:-/tmp}/libro_sync_push_$$.log"
+  rm -f "$push_log"
+
+  git push -u origin "$branch" 2>&1 | tee "$push_log"
+  push_status=${PIPESTATUS[0]}
+
+  if [ "$push_status" -eq 0 ]; then
+    rm -f "$push_log"
+    ok "Sincronizacion completada."
+    return
+  fi
+
+  if grep -qiE "Permission to .* denied|requested URL returned error: 403|Write access to repository not granted|permission denied|ERROR: Permission denied" "$push_log" 2>/dev/null; then
+    rm -f "$push_log"
+    warn "Tu cuenta de GitHub no tiene permiso directo para escribir en este repositorio."
+    warn "Tus commits NO se perdieron: estan guardados localmente."
+    if prompt_yes_no "Quieres crear un Pull Request desde tu fork para pedir que acepten tus cambios?" "s"; then
+      create_pull_request_from_fork "$branch"
+      return
+    fi
+    die "Push cancelado. Tus commits siguen locales; puedes pedir acceso o volver a intentar luego."
+  fi
+
+  rm -f "$push_log"
+  die "Fallo el push. Si alguien subio cambios antes que tu, vuelve a ejecutar el asistente para traer cambios y reintentar."
+}
+
 commit_and_push() {
   local section description commit_msg custom_msg
 
@@ -915,7 +1080,17 @@ commit_and_push() {
   msg ""
 
   if ! status_has_changes; then
-    ok "No hay cambios locales para enviar."
+    BRANCH="$(current_branch)"
+    if has_unpushed_commits "$BRANCH"; then
+      show_unpushed_commits "$BRANCH"
+      if prompt_yes_no "Quieres intentar subir esos commits pendientes ahora?" "s"; then
+        push_current_branch "$BRANCH"
+      else
+        warn "No se subio nada. Los commits siguen guardados localmente."
+      fi
+      return
+    fi
+    ok "No hay archivos modificados ni commits pendientes por subir."
     return
   fi
 
@@ -951,9 +1126,7 @@ commit_and_push() {
   git commit -m "$commit_msg" || die "Fallo el commit. Revisa los mensajes anteriores."
 
   BRANCH="$(current_branch)"
-  info "Enviando cambios: git push -u origin $BRANCH"
-  git push -u origin "$BRANCH" || die "Fallo el push. Ejecuta de nuevo este script para traer cambios y reintentar."
-  ok "Sincronizacion completada."
+  push_current_branch "$BRANCH"
 }
 
 copy_self_into_repo() {
@@ -1101,8 +1274,7 @@ combine_existing_folder_with_repo() {
   pull_latest_allow_unrelated
 
   if prompt_yes_no "Subir ahora el commit/merge local a GitHub?" "s"; then
-    git push -u origin "$branch" || die "No pude subir la combinacion. Ejecuta de nuevo el asistente para reintentar."
-    ok "Avance local subido y proyecto sincronizado."
+    push_current_branch "$branch"
   fi
 
   repo_bootstrap
