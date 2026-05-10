@@ -35,4 +35,7 @@ esta es una pruena de conflictod de version para ver el comportamiento de git
 =======
 esta es la prueba de conflicto en local vamos a ver cual se mantiene y cual no
 
->>>>>>> Stashed changes
+
+quedo demostrado que los 2 cambios se mantienen y luego hay que leerlos y escoger cual es el mejor asi qeu qeudo bien 
+
+
