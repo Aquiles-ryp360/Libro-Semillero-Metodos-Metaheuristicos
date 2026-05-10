@@ -118,6 +118,8 @@ fi
 BRANCH=""
 SELF_PATH="$0"
 SELF_NAME="$(basename -- "$0")"
+CONFIG_DIR="${HOME:-.}/.libro_sync"
+WORKSPACE_FILE="$CONFIG_DIR/workspace_path"
 
 msg() { printf "%b\n" "$*" >&2; }
 info() { msg "${BLUE}==>${RESET} $*"; }
@@ -205,6 +207,78 @@ pause_enter() {
   local answer
   printf "%b" "${YELLOW}Presiona Enter para continuar...${RESET}" >&2
   IFS= read -r answer || true
+}
+
+normalize_user_path() {
+  local path="$1"
+
+  if is_windows && command_exists cygpath; then
+    cygpath -u "$path" 2>/dev/null && return
+  fi
+
+  printf "%s" "$path"
+}
+
+save_workspace_path() {
+  local path="$1"
+
+  mkdir -p "$CONFIG_DIR" 2>/dev/null || return 1
+  printf "%s\n" "$path" > "$WORKSPACE_FILE" || return 1
+}
+
+load_workspace_path() {
+  if [ -f "$WORKSPACE_FILE" ]; then
+    sed -n '1p' "$WORKSPACE_FILE"
+  fi
+}
+
+choose_working_folder() {
+  local current selected normalized
+
+  current="$(pwd -P)"
+  msg ""
+  msg "${BOLD}Primer inicio: carpeta de trabajo${RESET}"
+  msg "Ruta actual:"
+  msg "  $current"
+  msg ""
+
+  if prompt_yes_no "Esta sera tu carpeta de trabajo para el libro?" "s"; then
+    selected="$current"
+  else
+    selected="$(prompt_required "Escribe la ruta de la carpeta de trabajo:")"
+    normalized="$(normalize_user_path "$selected")"
+    selected="$normalized"
+  fi
+
+  mkdir -p "$selected" || die "No pude crear la carpeta: $selected"
+  cd "$selected" || die "No pude entrar a la carpeta: $selected"
+  ok "Carpeta de trabajo seleccionada: $(pwd -P)"
+}
+
+open_saved_workspace_if_available() {
+  local saved
+
+  saved="$(load_workspace_path)"
+  [ -n "$saved" ] || return 1
+
+  if [ -d "$saved/.git" ]; then
+    info "Usando carpeta de trabajo guardada:"
+    msg "  $saved"
+    cd "$saved" || return 1
+    repo_bootstrap
+    repo_menu
+  fi
+
+  if [ -d "$saved" ]; then
+    warn "La carpeta guardada existe, pero aun no es un repositorio Git:"
+    msg "  $saved"
+    if prompt_yes_no "Usar esa carpeta para clonar o preparar el proyecto?" "s"; then
+      cd "$saved" || die "No pude entrar a la carpeta guardada."
+      outside_repo_menu
+    fi
+  fi
+
+  return 1
 }
 
 open_url() {
@@ -755,11 +829,11 @@ clone_project() {
 
   url="$DEFAULT_REPO_URL"
   if [ -z "$url" ]; then
-    url="$(prompt_required "URL del repositorio del libro (HTTPS o SSH):")"
+    url="$(prompt_required "Pega el link del repositorio del libro (HTTPS o SSH):")"
   else
     msg "Repo configurado: $url"
     if ! prompt_yes_no "Usar este repositorio?" "s"; then
-      url="$(prompt_required "URL del repositorio del libro (HTTPS o SSH):")"
+      url="$(prompt_required "Pega el link del repositorio del libro (HTTPS o SSH):")"
     fi
   fi
 
@@ -809,6 +883,7 @@ repo_bootstrap() {
   ensure_gitattributes
   configure_user
   normalize_main_branch
+  save_workspace_path "$(pwd -P)" || warn "No pude recordar esta carpeta para proximos inicios."
 }
 
 create_or_link_project_here() {
@@ -893,12 +968,16 @@ repo_menu() {
 outside_repo_menu() {
   local choice
 
+  choose_working_folder
+
   while true; do
     msg ""
-    msg "${BOLD}Asistente Git universal para el libro${RESET}"
+    msg "${BOLD}Primer inicio: origen del proyecto${RESET}"
+    msg "Carpeta de trabajo:"
+    msg "  $(pwd -P)"
     msg "------------------------------------"
-    msg "  1) Clonar el proyecto del libro por primera vez"
-    msg "  2) Preparar esta carpeta como proyecto Git (admin/primera creacion)"
+    msg "  1) Tengo el link del repositorio y quiero clonar el libro"
+    msg "  2) Voy a crear o preparar el repositorio aqui (admin/primera creacion)"
     msg "  3) Configurar nombre/email de Git"
     msg "  4) Verificar o instalar Git"
     msg "  0) Salir"
@@ -944,6 +1023,8 @@ main() {
   if inside_git_repo; then
     repo_bootstrap
     repo_menu
+  elif open_saved_workspace_if_available; then
+    exit 0
   else
     outside_repo_menu
   fi
