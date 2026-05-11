@@ -283,3 +283,5 @@ bash sync.cmd
 ```
 
 En Windows, normalmente basta con doble clic sobre `sync.cmd`.
+
+yo niko
